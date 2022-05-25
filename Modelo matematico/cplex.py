@@ -25,8 +25,8 @@ def parameters(excel):
 
 def parameterscsv():
 
-    TT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ/TT_paper.csv",index_col= None, header = None)
-    JT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ/JT_paper.csv",index_col= None, header = None)
+    TT = pd.read_csv("Data/test/TT_paper.csv",index_col= None, header = None)
+    JT = pd.read_csv("Data/test/JT_paper.csv",index_col= None, header = None)
 
     #print(JT[2][1])
     #JT[COLUMNA][FILA]
@@ -38,8 +38,8 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-def main():
-    nodos,arcos,TT,JT= parameters("/Users/pablogutierrezaguirre/Desktop/TSPJ/Modelo matematico/TSPJ_gr17.xlsx")
+def main(instancia):
+    nodos,arcos,TT,JT= parameters("Data/instancias_paper/"+instancia+".xlsx")
     #nodos,arcos,TT,JT= parameterscsv()
     trabajos = nodos.copy()
     nodos_trabajos = [(i,k) for i in nodos for k in trabajos]
@@ -49,14 +49,18 @@ def main():
     #Variables
     Cmax = mdl.integer_var(name = "Cmax")
     x = mdl.binary_var_dict(arcos,name="x")
-    # y = mdl.continuous_var_dict(arcos, name = "y")
+    y = mdl.continuous_var_dict(arcos, name = "y")
     z = mdl.binary_var_dict(nodos_trabajos,name = "z")
     TS = mdl.continuous_var_list(nodos, name ="TS")
 
+    jt_aux = np.array(list(JT.values()))
+    jt_min = jt_aux[(jt_aux >= 1)].min()
     #Funcion objetivo
     mdl.minimize(Cmax)
 
     #Restricciones
+    mdl.add_constraint(Cmax >= jt_min + mdl.sum(x[(i,j)]*TT[(i,j)] for i in nodos for j in nodos[1:] if i!=j))
+
     for i in nodos[1:len(nodos)]:
         mdl.add_constraint(Cmax >= TS[i] + mdl.sum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
 
@@ -75,22 +79,26 @@ def main():
     for j in nodos: #13
         mdl.add_constraint(mdl.sum(x[(i,j)] for i in nodos if i!=j)==1)
 
-    # for i in nodos[1:len(nodos)]: #14
-    #     mdl.add_constraint(mdl.sum(y[(i,j)] for j in nodos if i !=j) - mdl.sum(y[(j,i)] for j in nodos if i !=j) == 1)
+    for i in nodos[1:len(nodos)]: #14
+        mdl.add_constraint(mdl.sum(y[(i,j)] for j in nodos if i !=j) - mdl.sum(y[(j,i)] for j in nodos if i !=j) == 1)
 
-    # for i in nodos[1:len(nodos)]: #15
-    #     for j in nodos:
-    #         if i!=j:
-    #             mdl.add_constraint(y[(i,j)]<= n*x[(i,j)])
+    for i in nodos[1:len(nodos)]: #15
+        for j in nodos:
+            if i!=j:
+                mdl.add_constraint(y[(i,j)]<= n*x[(i,j)])
 
     for i in nodos: #16
         for j in nodos[1:len(nodos)]:
             if i!=j:
                 mdl.add_constraint(TS[i] + TT[(j,i)] - (1-x[(i,j)])*300000 <= TS[j])
 
-    print(mdl.export_to_string())
-    solucion=mdl.solve(log_output=True)
-    print(mdl.get_solve_status())
-    solucion.display()
 
-main()
+    #print(mdl.export_to_string())
+    mdl.solve(log_output=False)
+    #print(mdl.get_solve_status())
+    #solucion.display()
+    print(instancia,round(mdl.objective_value,1),round(mdl.solve_details.time,2))
+
+instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
+for i in instancias:
+    main(i)

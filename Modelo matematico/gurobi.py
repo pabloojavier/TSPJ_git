@@ -77,7 +77,7 @@ def parameterscsv():
     return nodes,arch,travel_time,job_time
 
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for instancia in instancias[2:3]:
+for instancia in instancias:
     ciudades,arcos,TT,JT = parametersexcel(instancia)
     #ciudades,arcos,TT,JT = parameterscsv()
     dist = {(i, j):distancia(i,j) for i, j in arcos}
@@ -106,12 +106,8 @@ for instancia in instancias[2:3]:
             for i in ciudades[1:len(ciudades)]:
                 modelo.addConstr(Cmax >= TS[i] + quicksum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
 
-            #for i in ciudades[1:len(ciudades)]:
-                #modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
-            
-            #Ver despues
-            #for i in ciudades[1:len(ciudades)]:
-                #modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
+            for i in ciudades[1:len(ciudades)]:
+                modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
 
             for k in trabajos[1:len(ciudades)]:
                 modelo.addConstr(quicksum(z[(i,k)] for i in ciudades if i != 0) == 1)
@@ -138,19 +134,16 @@ for instancia in instancias[2:3]:
             # Parámetros
             modelo.Params.Threads = 6
             modelo.Params.LazyConstraints = 1
-            #modelo.setParam('TimeLimit', 20)
+            modelo.setParam('TimeLimit', 999)
             # imprimir modelo
             modelo.optimize()
 
 
-            for i in x:
-                if x[i].X>0.9:
-                    print((round(x[i].X,0),i))   
-            # print()
-            # for i in z:
-            #     if z[i].X ==1:
-            #         print(i) 
-            # print()
-            print(f"{instancia} {modelo.getObjective().getValue()} {round(modelo.Runtime,2)}")
+            # for i in x:
+            #     if x[i].X>0.9:
+            #         print((round(x[i].X,0),i))   
+
+
+            print(f"{instancia} {round(modelo.getObjective().getValue(),1)} {round(modelo.Runtime,2)}")
 
 
