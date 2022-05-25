@@ -201,7 +201,8 @@ def cruzamiento(ind1,ind2):
         pass
 
 def parametersexcel(excel):
-    ruta = "/Users/pablogutierrezaguirre/Desktop/TSPJ/instancias_paper/"+excel+".xlsx"
+  
+    ruta = "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/instancias_paper/"+excel+".xlsx"
     TT = pd.read_excel(ruta,sheet_name="TT",index_col=0)
     JT = pd.read_excel(ruta,sheet_name="JT",index_col=0)
     #coord = pd.read_excel(excel,sheet_name = "coord",index_col=0,header=0)
@@ -219,8 +220,8 @@ def parametersexcel(excel):
 
 def parameterscsvpaper():
 
-    TT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ/TT2_paper.csv",index_col= None, header = None)
-    JT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ/JT2_paper.csv",index_col= None, header = None)
+    TT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/test/TT2_paper.csv",index_col= None, header = None)
+    JT = pd.read_csv("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/test/JT2_paper.csv",index_col= None, header = None)
 
     #print(JT[2][1])
     #JT[COLUMNA][FILA]
@@ -234,8 +235,8 @@ def parameterscsvpaper():
 
 def parameters(size,batch,instancia):
     
-    nameTT = "/Users/pablogutierrezaguirre/Desktop/TSPJ/fixDataTSP/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
-    nameJT = "/Users/pablogutierrezaguirre/Desktop/TSPJ/fixDataTSP/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_tasktime_table.csv"
+    nameTT = "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    nameJT = "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_tasktime_table.csv"
     #namecoord ="/Users/pablogutierrezaguirre/Desktop/TSPJ/fixDataTSP/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_nodes_table_by_coordinates.csv"
 
     TT = pd.read_csv(nameTT,index_col= None, header = None)
@@ -331,7 +332,7 @@ def transformar_txt(ruta,n):
     lineas[-1][0] = lineas[-1][0].replace(","," ")
     lineas[-1][0] = lineas[-1][0][:-1] +" "+str(10000000)
     
-    archivo = open("/Users/pablogutierrezaguirre/Desktop/TSPJ/Codigos/nuevas versiones/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
+    archivo = open("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
     archivo.write("NAME: prueba"+str(n+1)+"\n")
     archivo.write("TYPE: TSP\n")
     archivo.write(f"COMMENT: {n+1} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
@@ -354,14 +355,14 @@ def costo_ciudad(ciudad,n):
     return suma
 
 def solve_lkh(n):
-    ruta_instancia = "/Users/pablogutierrezaguirre/Desktop/TSPJ/fixDataTSP/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    ruta_instancia = "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
     transformar_txt(ruta_instancia,n)
     #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
-    problem = tsplib95.load("/Users/pablogutierrezaguirre/Desktop/TSPJ/Codigos/nuevas versiones/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
-    solver_path = '/Users/pablogutierrezaguirre/Desktop/TSPJ/Codigos/nuevas versiones/LKH-3.0.7/LKH'
+    problem = tsplib95.load("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    solver_path = '/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/LKH-3.0.7/LKH'
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad if i != 1]
-    os.remove("/Users/pablogutierrezaguirre/Desktop/TSPJ/Codigos/nuevas versiones/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    os.remove("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/"+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
     return ciudad
 
 def generarRuta(n):

@@ -9,11 +9,11 @@ import sys
 
 inicio = time.time()
 def launcher1(semilla,paralelo,_instancia , CRZ1=0.4 , CRZ2=0.2 , CRZ3=0.3 , CRZ4=0.2 , VMC1=0.9  , CT1=0.3 , MS1=0.5 , MS11=0.25 , MS12=0.25 , MS13=0.25 , MS14=0.25 , MS21=0.3 , POB=50 , CXPB=0.9 , MUTPB=0.2 , IT=500,ELITE=0.1,TOURN=4):
-    os.system(f"python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -CRZ1 {CRZ1} -CRZ2 {CRZ2} -CRZ3 {CRZ3} -CRZ4 {CRZ4} -VMC1 {VMC1} -CT1 {CT1} -MS1 {MS1} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
+    os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -CRZ1 {CRZ1} -CRZ2 {CRZ2} -CRZ3 {CRZ3} -CRZ4 {CRZ4} -VMC1 {VMC1} -CT1 {CT1} -MS1 {MS1} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
 
 def launcher2(semilla,paralelo,_size,_batch,_instancia , CRZ1=0.4 , CRZ2=0.2 , CRZ3=0.3 , CRZ4=0.2 , VMC1=0.9  , CT1=0.3 , MS1=0.5 , MS11=0.25 , MS12=0.25 , MS13=0.25 , MS14=0.25 , MS21=0.3 , POB=50 , CXPB=0.9 , MUTPB=0.2 , IT=500,ELITE=0.1,TOURN=4):
     #print(f"python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -CRZ1 {CRZ1} -CRZ2 {CRZ2} -CRZ3 {CRZ3} -CRZ4 {CRZ4} -VMC1 {VMC1} -CT1 {CT1} -MS1 {MS1} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
-    os.system(f"python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -CRZ1 {CRZ1} -CRZ2 {CRZ2} -CRZ3 {CRZ3} -CRZ4 {CRZ4} -VMC1 {VMC1} -CT1 {CT1} -MS1 {MS1} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
+    os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -CRZ1 {CRZ1} -CRZ2 {CRZ2} -CRZ3 {CRZ3} -CRZ4 {CRZ4} -VMC1 {VMC1} -CT1 {CT1} -MS1 {MS1} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
 
 #region
 paralelo = "paralelo"
@@ -43,10 +43,16 @@ tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
+if len(opts)<2:
+    print("multi.py -p <paralelo/secuencial> -t <tsplib/prueba>")
+    exit(0)
+elif len(opts)==2 and opts[-1][1] == "prueba":
+    print("multi.py -p <paralelo/secuencial> -t prueba -size <small/medium/large>")
+    exit(0)
 
 for i in range(len(opts)):
-    if opts[i][0][1:] == "paralelo": paralelo = opts[i][1]
-    elif opts[i][0][1:] == "tipo": tipo = opts[i][1] 
+    if opts[i][0][1:] == "p": paralelo = opts[i][1]
+    elif opts[i][0][1:] == "t": tipo = opts[i][1] 
     elif opts[i][0][1:] == "size": size = str(opts[i][1]) 
     elif opts[i][0][1:] == "batch" : batch = int(opts[i][1]) 
     elif opts[i][0][1:] == "i":
@@ -73,8 +79,9 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "IT": IT = int(opts[i][1])
     elif opts[i][0][1:] == "ELIT": ELITE = float(opts[i][1])
     elif opts[i][0][1:] == "TOURN": TOURN = int(opts[i][1])
-
 #endregion
+
+size = size.capitalize()
 
 parameters_value = {"CRZ1": CRZ1, "CRZ2": CRZ2, "CRZ3": CRZ3, "CRZ4": CRZ4, "VMC1": VMC1, "CT1": CT1, "MS1": MS1, "MS11": MS1_1, "MS12": MS1_2, "MS13": MS1_3, "MS14": MS1_4, "MS21": MS2_1, "POB": POBLACION, "CXPB": CXPB, "MUTPB": MUTPB, "IT": IT}
 

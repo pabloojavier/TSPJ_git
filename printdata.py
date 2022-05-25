@@ -271,16 +271,17 @@ def agVsMosayebiV2_CMAX(tiempo,min,avg,tipo):
         print(tabulate(df, headers='keys', tablefmt='psql',showindex=False))
 
 
-argv = sys.argv[1:]
 
-#print(argv)
-if len(argv)!=0:
-    ruta = "".join(argv[0])
-else:
-    ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ/output/cluster/tsplib.txt"
+
+# argv = sys.argv[:]
+# if len(argv)!=0:
+#     ruta = input("Ruta completa: ")
+# else:
+ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ/output/cluster/tsplib.txt"
+
 
 #Para instancias TSPLIB
-#print(ruta)
+
 minimos,avgs,tiempos = output_to_list(ruta)
 agVsMosayebiV2(tiempos,minimos,avgs,"Late1x")
 
