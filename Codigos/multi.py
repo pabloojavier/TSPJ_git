@@ -6,6 +6,7 @@ import random
 import sys
 
 
+#/usr/local/bin/python3.9 multi.py -p paralelo -t tsplib
 
 inicio = time.time()
 def launcher1(semilla,paralelo,_instancia , CRZ1=0.4 , CRZ2=0.2 , CRZ3=0.3 , CRZ4=0.2 , VMC1=0.9  , CT1=0.3 , MS1=0.5 , MS11=0.25 , MS12=0.25 , MS13=0.25 , MS14=0.25 , MS21=0.3 , POB=50 , CXPB=0.9 , MUTPB=0.2 , IT=500,ELITE=0.1,TOURN=4):
@@ -92,8 +93,8 @@ if paralelo.lower() == "paralelo":
         pool = multiprocessing.Pool(processes=max(1, multiprocessing.cpu_count()-2))
 
         if tipo.lower() !="tsplib":
-            #print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{}".format("seed","size","batch","instancia ","min","avg","tiempo"))
-            #print("--------------------------------------------------------------")
+            #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion
+            print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
             instancias = [i for i in range(1,101) ]
             u = 0
             for _product in itertools.product(instancias,seed):
@@ -105,8 +106,8 @@ if paralelo.lower() == "paralelo":
 
                 pool.apply_async(launcher2, args=(_seed,"paralelo",size,_batch,_instancia),kwds=parameters_value)
         else:
-            #print("{:<6}{:<12}{:<12}{:<10}{}".format("seed","instancia ","min","avg","tiempo"))
-            #print("--------------------------------------------------")
+            #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor
+            print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
             instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
             for _product in itertools.product(instancias,seed):
                 _instancia,_seed = _product
@@ -119,15 +120,14 @@ if paralelo.lower() == "paralelo":
 else:
     if tipo.lower() =="tsplib":
         instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-        #print("{:<6}{:<12}{:<12}{:<10}{}".format("seed","instancia ","min","avg","tiempo"))
-        #print("--------------------------------------------------")
+        print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
         for i in instancias:
             for j in range(10):
                 launcher1(j,"secuencial",i,CRZ1=CRZ1 , CRZ2=CRZ2 , CRZ3=CRZ3 , CRZ4=CRZ4 , VMC1=VMC1  , CT1=CT1 , MS1=MS1 , MS11=MS1_1 , MS12=MS1_2 , MS13=MS1_3 , MS14=MS1_4 , MS21=MS2_1 , POB=POBLACION , CXPB=CXPB , MUTPB=MUTPB , IT=IT,ELITE=ELITE,TOURN=TOURN)
     else:
         instancias = [i for i in range(1,101) ]
-        #print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{}".format("seed","size","batch","instancia ","min","avg","tiempo"))
-        #print("--------------------------------------------------------------")
+        #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion
+        print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
         for i in instancias:
             for j in range(10):
                 if i<=25: _batch = 1

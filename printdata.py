@@ -184,7 +184,7 @@ def instancias_prueba(ruta):
     print("Promedio: ",float("%.2f"%(sum(minimo_s)/len(minimo_s))))
     print("Tiempo: ",float("%.2f"%(sum(tiempo_s)/len(tiempo_s))))
 
-def agVsMosayebiV2SINGAP(tiempo,min,avg,tipo):
+def agVsMosayebiV2_SINGAP(tiempo,min,avg,tipo):
     instancias = ["","gr17-J","gr21-J","gr24-J","fri26-J","bays29-J","gr48-J","eil51-J","berlin52-J","eil76-J","eil101-J","promedio"]
 
     I =  ['I', 2760.0, 7956.0, 1818.0, 1326.0, 2978.0, 7692.0, 648.71, 11230.49, 847.99, 975.94, 3823.31]
@@ -271,19 +271,11 @@ def agVsMosayebiV2_CMAX(tiempo,min,avg,tipo):
         print(tabulate(df, headers='keys', tablefmt='psql',showindex=False))
 
 
-
-
-# argv = sys.argv[:]
-# if len(argv)!=0:
-#     ruta = input("Ruta completa: ")
-# else:
-ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ/output/cluster/tsplib.txt"
-
+ruta ="output/tsplib/1.txt"
 
 #Para instancias TSPLIB
-
 minimos,avgs,tiempos = output_to_list(ruta)
-agVsMosayebiV2(tiempos,minimos,avgs,"Late1x")
+agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/output/cluster/presentacion/small.txt")

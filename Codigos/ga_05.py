@@ -932,7 +932,9 @@ def GA(ciudad,comparar,plot):
         
     # Población inicial
     fitnesses = list(map(toolbox.evaluate, pop))
-    #exit(0)
+    promedio_p_inicial = numpy.mean(fitnesses)
+    mejor_inicial = numpy.min(fitnesses)
+    mejor_aux = mejor_inicial
     # Evaluación
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
@@ -953,6 +955,7 @@ def GA(ciudad,comparar,plot):
         df = pd.DataFrame(columns=["gen","avg","min","std"])
         df.loc[0] = [log[-1]["gen"], "%.2f"%log[-1]["avg"], "%.2f"%log[-1]["min"], "%.2f"%log[-1]["std"]]
     timeLimit = 1800
+    iteracion_mejor = 0
     # Proceso evolutivo
     while g < iterMax and time.time() - inicioTiempo <= timeLimit:
         g = g + 1
@@ -980,6 +983,9 @@ def GA(ciudad,comparar,plot):
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
+            if fit < mejor_aux:
+                mejor_aux = fit 
+                iteracion_mejor = g
 
         #best = hof.items[0]
         #DosOpt(hof.items[0][0])
@@ -1029,7 +1035,7 @@ def GA(ciudad,comparar,plot):
             plt.show()
 
     else:
-        return "%.2f"%log[-1]["min"],tiempo,"%.2f"%log[-1]["avg"],df
+        return "%.2f"%log[-1]["min"],tiempo,"%.2f"%log[-1]["avg"],df,iteracion_mejor,promedio_p_inicial,mejor_inicial
 
 
 
@@ -1074,7 +1080,7 @@ TOURN     = 4
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 paralelo = "secuencial"
-multi = "False"
+multi = False
 mbool = True
 
 
@@ -1122,26 +1128,28 @@ if isinstance(instancia, int):
     elif instancia <=75: batch = 3
     else: batch = 4
 
-if multi =="False":
+if multi ==False:
     print("Instancia :",instancia)
     print("SEED: ",semilla)
 
 if instancia not in tsplib: #Si es que es instancia de prueba
     random.seed(semilla)
     ciudad,arch,TT,JT = parameters(size,batch,instancia)
-    m,t,p,d = GA(ciudad,mbool,False)
-    if multi=="False":
+    m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial = GA(ciudad,mbool,False)
+    if multi==False:
         print("tiempo: ",t," segundos")
         print("Mejor","%.2f"%float(m))
     else:
-        print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{}".format(semilla,size,batch,instancia,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t))
+        #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion
+        print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format(semilla,size,batch,instancia,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion))
 
 else:
     random.seed(semilla)
     ciudad,arch,TT,JT = parametersexcel(instancia)
-    m,t,p,d = GA(ciudad,mbool,False)
-    if multi=="False":
+    m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial = GA(ciudad,mbool,False)
+    if multi==False:
         print("tiempo: ",t," segundos")
         print("Mejor","%.2f"%float(m))
     else:
-        print("{:<6}{:<12}{:<12}{:<10}{:<25}".format(semilla,instancia,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t))
+        #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor
+        print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format(semilla,instancia,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion))
