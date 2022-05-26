@@ -93,8 +93,8 @@ if paralelo.lower() == "paralelo":
         pool = multiprocessing.Pool(processes=max(1, multiprocessing.cpu_count()-2))
 
         if tipo.lower() !="tsplib":
-            #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion
-            print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
+            #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
+            print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
             instancias = [i for i in range(1,101) ]
             u = 0
             for _product in itertools.product(instancias,seed):
@@ -106,8 +106,8 @@ if paralelo.lower() == "paralelo":
 
                 pool.apply_async(launcher2, args=(_seed,"paralelo",size,_batch,_instancia),kwds=parameters_value)
         else:
-            #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor
-            print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
+            #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
+            print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
             instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
             for _product in itertools.product(instancias,seed):
                 _instancia,_seed = _product
@@ -120,14 +120,15 @@ if paralelo.lower() == "paralelo":
 else:
     if tipo.lower() =="tsplib":
         instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-        print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
+        #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
+        print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
         for i in instancias:
             for j in range(10):
                 launcher1(j,"secuencial",i,CRZ1=CRZ1 , CRZ2=CRZ2 , CRZ3=CRZ3 , CRZ4=CRZ4 , VMC1=VMC1  , CT1=CT1 , MS1=MS1 , MS11=MS1_1 , MS12=MS1_2 , MS13=MS1_3 , MS14=MS1_4 , MS21=MS2_1 , POB=POBLACION , CXPB=CXPB , MUTPB=MUTPB , IT=IT,ELITE=ELITE,TOURN=TOURN)
     else:
         instancias = [i for i in range(1,101) ]
-        #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion
-        print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<10}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter"))
+        #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
+        print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
         for i in instancias:
             for j in range(10):
                 if i<=25: _batch = 1
