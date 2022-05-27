@@ -98,6 +98,7 @@ for instancia in instancias[:]:
             Cmax = modelo.addVar(vtype = GRB.INTEGER ,name="Cmax")
             x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
             z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
+            y = modelo.addVars(arcos,name = "y")
             TS = modelo.addVars(ciudades,name="TS")
 
             #Crear función objetivo
@@ -125,6 +126,14 @@ for instancia in instancias[:]:
             for j in ciudades: #13
                 modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
 
+            for i in ciudades[1:len(ciudades)]: #14
+                modelo.addConstr(quicksum(y[(i,j)] for j in ciudades if i !=j) - quicksum(y[(j,i)] for j in ciudades if i !=j) == 1)
+
+            for i in ciudades[1:len(ciudades)]: #15
+                for j in ciudades:
+                    if i!=j:
+                        modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
+
             for i in ciudades: #16
                 for j in ciudades[1:len(ciudades)]:
                     if i!=j:
@@ -141,13 +150,13 @@ for instancia in instancias[:]:
             modelo.setParam('TimeLimit', 999)
             # imprimir modelo
             modelo.optimize()
-            modelo.write("file1.lp")
+            #modelo.write("file2.lp")
 
             # for i in x:
             #     if x[i].X>0.9:
             #         print((round(x[i].X,0),i))   
 
-
             print("{:<10}{:<10}{:<10}".format(instancia,round(modelo.getObjective().getValue(),1),round(modelo.Runtime,2)))
+            #print(f"{instancia} {round(modelo.getObjective().getValue(),1)} {round(modelo.Runtime,2)}")
 
 
