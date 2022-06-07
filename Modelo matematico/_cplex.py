@@ -78,7 +78,7 @@ def main(instancia):
 
     mdl=Model("Modelo")
     #Variables
-    Cmax = mdl.integer_var(name = "Cmax")
+    Cmax = mdl.continuous_var(name = "Cmax")
     x = mdl.binary_var_dict(arcos,name="x")
     y = mdl.continuous_var_dict(arcos, name = "y")
     z = mdl.binary_var_dict(nodos_trabajos,name = "z")
@@ -103,7 +103,7 @@ def main(instancia):
 
     for i in nodos[1:len(nodos)]: 
         mdl.add_constraint(mdl.sum(z[(i,k)] for k in trabajos if k != 0) == 1)
-    
+
     for i in nodos: #12
         mdl.add_constraint(mdl.sum(x[(i,j)] for j in nodos if i!=j)==1)
 
@@ -113,31 +113,41 @@ def main(instancia):
     for i in nodos: #16
         for j in nodos[1:len(nodos)]:
             if i!=j:
-                mdl.add_constraint(TS[i] + TT[(j,i)] - (1-x[(i,j)])*300000 <= TS[j])
-
+                mdl.add_constraint(TS[i] + TT[(j,i)] - (1-x[(i,j)])*30000 <= TS[j])
+                #mdl.add_constraint(TS[i] - TS[j] + TT[(i,j)] <= (1-x[(i,j)])*30000)
+                #mdl.add_constraint(TS[i] - TS[j] + TT[(j,i)] <= (1-x[(i,j)])*30000)
 
     #print(mdl.export_to_string())
     mdl.set_time_limit(999)
     solucion = mdl.solve(log_output=False)
-    #print(mdl.get_solve_status())
+    print("lb: ",solucion.solve_details.best_bound,mdl.get_solve_status())
+    print(mdl.solve_details)
+
+
+
     #solucion.display()
 
-    # individuo = leer_solucion(x,z,n)
-    # print(individuo[1])
-    # ruta = [15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1]
-    # trabajos = [6, 15, 1, 9, 14, 13, 16, 5, 2, 3, 8, 11, 10, 4, 12, 7]
+    #individuo = leer_solucion(x,z,n)
+    #print(individuo)
+    #print(mdl.objective_value)
+    #ruta = [15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1]
+    #trabajos = [14, 15, 9, 13, 4, 8, 10, 3, 11, 6, 12, 2, 5, 1, 16, 7]
     #for i in range(len(ruta)):
         #print(f"mdl.add_constraint(z[{ruta[i],trabajos[i]}] == 1 )")
+        #pass
+    
+    #for i in TS:
+        #print(i.solution_value)
 
+    #print(individuo,TT[(0,1)])
+    print("{:<10}{:<10}{:<10}".format(instancia,round(mdl.objective_value,4),round(mdl.solve_details.time,2)))
 
-    print("{:<10}{:<10}{:<10}".format(instancia,round(mdl.objective_value,1),round(mdl.solve_details.time,2)))
-
-    return individuo
+    #return individuo
 
 
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for i in instancias[0:1]:
-    individuo = main(i)
+for i in instancias:
+    main(i)
 
 # GA = [[15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1], [14, 15, 9, 13, 4, 8, 10, 3, 11, 6, 12, 2, 5, 1, 16, 7]]
 # if GA == individuo:
@@ -146,3 +156,11 @@ for i in instancias[0:1]:
 #     #print(individuo)
 #     pass
 
+# gr17      2760.0    0.28      
+# gr21      7788.0    0.99      
+# gr24      1806.0    0.66      
+# fri26     1283.0    1.28      
+# bays29    2916.0    6.92      
+# gr48      7282.0    33.6      
+# eil51     628.51    15.07     
+# berlin52  11087.21  22.72  

@@ -68,8 +68,6 @@ def ordenar_trabajos(ruta,lista,n):
                 trabajos.append(j[1])
     return trabajos
 
-
-
 def main(instancia):
     nodos,arcos,TT,JT= parameters("Data/instancias_paper/"+instancia+".xlsx")
     #nodos,arcos,TT,JT= parameterscsv()
@@ -79,7 +77,7 @@ def main(instancia):
 
     mdl=Model("Modelo")
     #Variables
-    Cmax = mdl.integer_var(name = "Cmax")
+    Cmax = mdl.continuous_var(name = "Cmax")
     x = mdl.binary_var_dict(arcos,name="x")
     y = mdl.continuous_var_dict(arcos, name = "y")
     z = mdl.binary_var_dict(nodos_trabajos,name = "z")
@@ -122,7 +120,7 @@ def main(instancia):
     for i in nodos: #16
         for j in nodos[1:len(nodos)]:
             if i!=j:
-                mdl.add_constraint(TS[i] + TT[(j,i)] - (1-x[(i,j)])*300000 <= TS[j])
+                mdl.add_constraint(TS[i] + TT[(j,i)] - (1-x[(i,j)])*30000 <= TS[j])
 
 
     #print(mdl.export_to_string())
@@ -135,3 +133,13 @@ def main(instancia):
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 for i in instancias:
     main(i)
+
+
+# gr17      2760.0    0.71      
+# gr21      7788.0    0.79      
+# gr24      1806.0    1.23      
+# fri26     1283.0    1.61      
+# bays29    2916.0    4.84      
+# gr48      7282.0    36.89     
+# eil51     628.5     24.22     
+# berlin52  11087.2   32.32     

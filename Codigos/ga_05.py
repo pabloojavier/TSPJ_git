@@ -264,7 +264,7 @@ def distancia(i, j):
 def costoTotal(ciudad2):
     #ciudad2 = [[20, 1, 19, 9, 3, 14, 17, 16, 13, 21, 10, 18, 24, 6, 22, 26, 15, 12, 23, 7, 27, 5, 11, 8, 4, 25, 28, 2], [7, 28, 27, 2, 25, 5, 3, 26, 13, 20, 6, 24, 19, 15, 14, 12, 16, 23, 4, 10, 8, 11, 21, 22, 18, 17, 1, 9]]
     #ciudad2 = [[3, 11, 23, 4, 20, 7, 6, 5, 15, 10, 2, 16, 9, 13, 19, 1, 14, 18, 21, 17, 22, 8, 12], [16, 4, 23, 10, 2, 12, 17, 21, 20, 1, 5, 11, 19, 7, 22, 9, 18, 6, 13, 3, 14, 8, 15]]
-    #gr17 = [[15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1], [3, 8, 11, 16, 2, 13, 12, 14, 1, 6, 5, 15, 9, 10, 4, 7]]
+    ciudad2 = [[43, 40, 33, 22, 24, 2, 18, 3, 29, 37, 19, 34, 41, 38, 39, 36, 1, 44, 42, 46, 17, 45, 27, 6, 28, 12, 47, 15, 10, 35, 5, 25, 14, 23, 9, 11, 30, 4, 32, 7, 21, 8, 13, 20, 31, 26, 16], [45, 36, 38, 20, 24, 40, 12, 27, 32, 7, 19, 14, 4, 3, 22, 1, 28, 13, 47, 43, 16, 9, 5, 11, 18, 23, 35, 10, 39, 29, 33, 46, 15, 21, 17, 25, 6, 31, 44, 34, 26, 37, 8, 42, 30, 41, 2]]
     ciudad = ciudad2[0]
     trabajo = ciudad2[1]
     n = len(ciudad)
@@ -277,6 +277,7 @@ def costoTotal(ciudad2):
         suma += distancia(ciudad[i], ciudad[i + 1])
         suma_ac.append(suma)
         maxtime = suma_ac[-1] + jobTime(trabajo[i+1],ciudad[i+1])  
+        #print(maxtime)
         #print("costo: ",suma_ac[-1],maxtime)
         #print(suma_ac,maxtime)
         if maxtime > cmax:
@@ -289,8 +290,10 @@ def costoTotal(ciudad2):
         cmax = suma_ac[-1]
         #print("costo: ",suma_ac[-1],maxtime)
         #print("COSTO TOTAL: ",ciudad[-1])
-    #print("cmas: ",cmax)
-    #exit(0)
+    
+    print("cmas: ",cmax)
+    print("ac",suma_ac)
+    exit(0)
 
     return cmax,
 
@@ -1022,7 +1025,7 @@ def GA(ciudad,comparar,plot):
             df.loc[g] = [log[-1]["gen"], "%.2f"%log[-1]["avg"], "%.2f"%log[-1]["min"],"%.2f"%log[-1]["std"]]
 
     #print(lista_soluciones[-1])
-    #print(top[-1])
+    print(top[-1])
     finTiempo = time.time()
     tiempo = finTiempo - inicioTiempo
     minimo, promedio = log.select("min", "avg")
@@ -1045,7 +1048,7 @@ def GA(ciudad,comparar,plot):
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = "gr17"
+instancia = "gr48"
 size = "tsplib" if instancia in tsplib else "Small"
 
 #Cruzamiento

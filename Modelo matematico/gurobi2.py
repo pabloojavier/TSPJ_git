@@ -95,7 +95,7 @@ for instancia in instancias[:]:
         env.start()
         with gp.Model(env=env) as modelo:
             # Crear variables
-            Cmax = modelo.addVar(vtype = GRB.INTEGER ,name="Cmax")
+            Cmax = modelo.addVar(name="Cmax")
             x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
             z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
             y = modelo.addVars(arcos,name = "y")
@@ -137,7 +137,7 @@ for instancia in instancias[:]:
             for i in ciudades: #16
                 for j in ciudades[1:len(ciudades)]:
                     if i!=j:
-                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*300000 <= TS[j])
+                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*30000 <= TS[j])
 
 
             
