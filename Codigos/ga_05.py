@@ -264,6 +264,7 @@ def distancia(i, j):
 def costoTotal(ciudad2):
     #ciudad2 = [[20, 1, 19, 9, 3, 14, 17, 16, 13, 21, 10, 18, 24, 6, 22, 26, 15, 12, 23, 7, 27, 5, 11, 8, 4, 25, 28, 2], [7, 28, 27, 2, 25, 5, 3, 26, 13, 20, 6, 24, 19, 15, 14, 12, 16, 23, 4, 10, 8, 11, 21, 22, 18, 17, 1, 9]]
     #ciudad2 = [[3, 11, 23, 4, 20, 7, 6, 5, 15, 10, 2, 16, 9, 13, 19, 1, 14, 18, 21, 17, 22, 8, 12], [16, 4, 23, 10, 2, 12, 17, 21, 20, 1, 5, 11, 19, 7, 22, 9, 18, 6, 13, 3, 14, 8, 15]]
+    #gr17 = [[15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1], [3, 8, 11, 16, 2, 13, 12, 14, 1, 6, 5, 15, 9, 10, 4, 7]]
     ciudad = ciudad2[0]
     trabajo = ciudad2[1]
     n = len(ciudad)
@@ -288,8 +289,8 @@ def costoTotal(ciudad2):
         cmax = suma_ac[-1]
         #print("costo: ",suma_ac[-1],maxtime)
         #print("COSTO TOTAL: ",ciudad[-1])
-    # print("cmas: ",cmax)
-    # exit(0)
+    #print("cmas: ",cmax)
+    #exit(0)
 
     return cmax,
 
@@ -1155,3 +1156,5 @@ else:
     else:
         #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
         print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format(semilla,instancia,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion,round(t_poblacion,2)))
+
+#[[15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1], [3, 8, 11, 16, 2, 13, 12, 14, 1, 6, 5, 15, 9, 10, 4, 7]]

@@ -42,6 +42,34 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
+def leer_solucion(x,z,n):
+    ruta = [i for i in x if x[i].solution_value>0.8]
+    ruta = ordenar_ruta(ruta,n)[1:]
+
+    trabajos = [i for i in z if z[i].solution_value>0.8]
+    trabajos = ordenar_trabajos(ruta,trabajos,n)
+
+    return [ruta,trabajos]
+
+def ordenar_ruta(lista,n):
+    solucion = []
+    solucion.append(0)
+    while len(solucion)!= n:
+        for i in lista:
+            if i[0]==solucion[-1]:
+                solucion.append(i[1])
+    return solucion
+
+def ordenar_trabajos(ruta,lista,n):
+    trabajos = []
+    for i in ruta:
+        for j in lista:
+            if j[0]==i:
+                trabajos.append(j[1])
+    return trabajos
+
+
+
 def main(instancia):
     nodos,arcos,TT,JT= parameters("Data/instancias_paper/"+instancia+".xlsx")
     #nodos,arcos,TT,JT= parameterscsv()
