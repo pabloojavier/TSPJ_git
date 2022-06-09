@@ -69,7 +69,7 @@ def ordenar_trabajos(ruta,lista,n):
     return trabajos
 
 def main(instancia):
-    nodos,arcos,TT,JT= parameters("Data/instancias_paper/"+instancia+".xlsx")
+    nodos,arcos,TT,JT= parameters("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/instancias_paper/"+instancia+".xlsx")
     #nodos,arcos,TT,JT= parameterscsv()
     trabajos = nodos.copy()
     nodos_trabajos = [(i,k) for i in nodos for k in trabajos]
@@ -125,13 +125,21 @@ def main(instancia):
 
     #print(mdl.export_to_string())
     mdl.set_time_limit(999)
-    mdl.solve(log_output=False)
+    solucion = mdl.solve(log_output=False)
     #print(mdl.get_solve_status())
     #solucion.display()
-    print("{:<10}{:<10}{:<10}".format(instancia,round(mdl.objective_value,1),round(mdl.solve_details.time,2)))
+    lower = solucion.solve_details.best_bound
+    objective = mdl.objective_value
+
+    gap = round((objective - lower)/lower*100,4)
+    objective = round(mdl.objective_value,4) 
+    lower = round(solucion.solve_details.best_bound,4)
+    time = round(mdl.solve_details.time,2)
+    #instancia, bks,lower bound, gap, time
+    print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
 
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for i in instancias:
+for i in instancias[:7]:
     main(i)
 
 

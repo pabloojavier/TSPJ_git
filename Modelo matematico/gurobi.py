@@ -19,7 +19,7 @@ def jobTime(i,j):
     return JT[(i,j)]
 
 def parametersexcel(excel):
-    ruta = "/Users/pablogutierrezaguirre/Desktop/TSPJ/instancias_paper/"+excel+".xlsx"
+    ruta = "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/instancias_paper/"+excel+".xlsx"
     TT = pd.read_excel(ruta,sheet_name="TT",index_col=0)
     JT = pd.read_excel(ruta,sheet_name="JT",index_col=0)
     #coord = pd.read_excel(excel,sheet_name = "coord",index_col=0,header=0)
@@ -81,7 +81,7 @@ def parameterscsv():
     return nodes,arch,travel_time,job_time
 
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for instancia in instancias[:]:
+for instancia in instancias[:7]:
     ciudades,arcos,TT,JT = parametersexcel(instancia)
     #ciudades,arcos,TT,JT = parameterscsv()
     dist = {(i, j):distancia(i,j) for i, j in arcos}
@@ -142,12 +142,18 @@ for instancia in instancias[:]:
             # imprimir modelo
             modelo.optimize()
             #modelo.write("file1.lp")
-
             # for i in x:
             #     if x[i].X>0.9:
             #         print((round(x[i].X,0),i))   
+            
+            lower = modelo.ObjBoundC
+            objective = modelo.getObjective().getValue()
+            gap = round((objective-lower)/lower*100,4)
 
-
-            print("{:<10}{:<10}{:<10}".format(instancia,round(modelo.getObjective().getValue(),1),round(modelo.Runtime,2)))
+            lower = round(modelo.ObjBoundC,4)
+            objective = round(modelo.getObjective().getValue(),4)
+            time = round(modelo.Runtime,2)
+            # instancia, bks, lower, gap, time
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
 
 

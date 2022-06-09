@@ -70,7 +70,7 @@ def ordenar_trabajos(ruta,lista,n):
     return trabajos
 
 def main(instancia):
-    nodos,arcos,TT,JT= parameters("Data/instancias_paper/"+instancia+".xlsx")
+    nodos,arcos,TT,JT= parameters("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Data/instancias_paper/"+instancia+".xlsx")
     #nodos,arcos,TT,JT= parameterscsv()
     trabajos = nodos.copy()
     nodos_trabajos = [(i,k) for i in nodos for k in trabajos]
@@ -120,8 +120,8 @@ def main(instancia):
     #print(mdl.export_to_string())
     mdl.set_time_limit(999)
     solucion = mdl.solve(log_output=False)
-    print("lb: ",solucion.solve_details.best_bound,mdl.get_solve_status())
-    print(mdl.solve_details)
+    #print("lb: ",solucion.solve_details.best_bound,mdl.get_solve_status())
+    #print(mdl.solve_details)
 
 
 
@@ -136,25 +136,25 @@ def main(instancia):
         #print(f"mdl.add_constraint(z[{ruta[i],trabajos[i]}] == 1 )")
         #pass
     
-    #for i in TS:
-        #print(i.solution_value)
 
-    #print(individuo,TT[(0,1)])
-    print("{:<10}{:<10}{:<10}".format(instancia,round(mdl.objective_value,4),round(mdl.solve_details.time,2)))
+    lower = solucion.solve_details.best_bound
+    objective = mdl.objective_value
+
+    gap = round((objective - lower)/lower*100,4)
+    objective = round(mdl.objective_value,4) 
+    lower = round(solucion.solve_details.best_bound,4)
+    time = round(mdl.solve_details.time,2)
+    #instancia, bks,lower bound, gap, time
+    print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
 
     #return individuo
 
 
 instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for i in instancias:
+for i in instancias[:7]:
     main(i)
 
-# GA = [[15, 11, 8, 3, 12, 6, 7, 5, 16, 13, 14, 2, 10, 4, 9, 1], [14, 15, 9, 13, 4, 8, 10, 3, 11, 6, 12, 2, 5, 1, 16, 7]]
-# if GA == individuo:
-#     print(True)
-# else:
-#     #print(individuo)
-#     pass
+
 
 # gr17      2760.0    0.28      
 # gr21      7788.0    0.99      
