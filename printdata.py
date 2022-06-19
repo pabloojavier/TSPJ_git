@@ -333,7 +333,7 @@ def agVsMosayebiV2_stats(tiempo,min,avg,mejor_inicial,avg_mejor_inicial,iteracio
         columnas = ["name","","","","CMAX","","","","","","","sec","","","","","Stats","",""]
         df = pd.DataFrame(columns=columnas)
         for i in range(len(instancias)):
-            print(instancias[i],mejor_inicial[i])
+            #print(instancias[i],mejor_inicial[i])
             try:
                 df.loc[i] = [instancias[i],gams[i],I[i],II[i],III[i],IV[i],min[i],avg[i],barras[i],tI[i],tII[i],tIII[i],tIV[i],tiempo[i],barras[i],mejor_inicial[i],avg_mejor_inicial[i],iteracion[i],t_pob[i]]
             except:
@@ -361,7 +361,7 @@ def instancia_prueba_stats(ruta):
         print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]))
     
 
-ruta ="output/tsplib/2.txt"
+ruta ="output/tsplib/3.txt"
 
 #Para instancias TSPLIB
 # minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
@@ -369,6 +369,6 @@ ruta ="output/tsplib/2.txt"
 # agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
-instancia_prueba_stats("output/small/1.txt")
-#instancias_prueba("output/small/1.txt")
+#instancia_prueba_stats("output/small/small1.txt")
+instancias_prueba("output/large/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")
