@@ -26,7 +26,7 @@ def parametersexcel(excel):
     #coord_y = coord["coord_y"]
     #print(JT[2][1])
     #JT[NODOS][TRABAJOS]
-    n = len(list(TT.index.values))
+    n = len(list(JT.loc[0].dropna()))
     nodes = [i for i in range(n)]
     arch = [(i,j) for i in nodes for j in nodes if i !=j]
     travel_time = {(i,j): TT[i][j] for i,j in arch}
