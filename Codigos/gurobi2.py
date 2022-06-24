@@ -34,6 +34,30 @@ def parametersexcel(excel):
 
     return nodes,arch,travel_time,job_time
 
+def parameters(size,batch,instancia):
+    
+    nameTT = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    nameJT = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_tasktime_table.csv"
+    #namecoord =path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_nodes_table_by_coordinates.csv"
+
+    TT = pd.read_csv(nameTT,index_col= None, header = None)
+    JT = pd.read_csv(nameJT,index_col= None, header = None)
+    #coord = pd.read_csv(namecoord,index_col=None,header=None)
+
+    #coord_x = coord[0]
+    #coord_y = coord[1]
+
+    #print(JT[2][1])
+    #JT[COLUMNA][FILA]
+    #TT[COLUMNA][FILA]
+    n = len(list(TT.index.values))
+    nodes = [i for i in range(n)]
+    arch = [(i,j) for i in nodes for j in nodes if i !=j]
+    travel_time = {(i,j): TT[i][j] for i,j in arch}
+    job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
+
+    return nodes,arch,travel_time,job_time
+
 def subtourelim1(modelo, donde):
     # Callback - para usar cortes lazy de eliminación de subtour Eq DFJ1
     n = N
@@ -77,11 +101,15 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-for instancia in instancias:
-    ciudades,arcos,TT,JT = parametersexcel(instancia)
-    N = len(ciudades)
-    #ciudades,arcos,TT,JT = parameterscsv()
+#instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
+instancias = [u for u in range(1,101)]
+batch = [u//25+1 for u in range(100)]
+
+for u in range(len(instancias)):
+    #ciudades,arcos,TT,JT = parametersexcel(instancias[u])
+    #ciudades,arcos,TT,JT = parameterscsv()    
+    ciudades,arcos,TT,JT = parameters("Small",batch[u],instancias[u])
+    
     dist = {(i, j):distancia(i,j) for i, j in arcos}
     trabajos = ciudades.copy()
     nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
@@ -162,7 +190,7 @@ for instancia in instancias:
             objective = round(modelo.getObjective().getValue(),4)
             time = round(modelo.Runtime,2)
             # instancia, bks, lower, gap, time
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
-            #print(f"{instancia} {round(modelo.getObjective().getValue(),1)} {round(modelo.Runtime,2)}")
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[u],objective,lower,gap,time))
+
 
 
