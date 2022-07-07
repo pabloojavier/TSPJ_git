@@ -5,8 +5,8 @@ import pandas as pd
 from itertools import combinations
 import numpy as np
 
-#path = "Codigos/"
-path=""
+path = "Codigos/"
+#path=""
 
 def distancia(i, j):
     global TT
@@ -102,95 +102,151 @@ def parameterscsv():
     return nodes,arch,travel_time,job_time
 
 #instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-instancias = [u for u in range(1,101)]
-batch = [u//25+1 for u in range(100)]
+#instancias = [u for u in range(1,101)]
+#batch = [u//25+1 for u in range(100)]
 
-for u in range(len(instancias)):
-    #ciudades,arcos,TT,JT = parametersexcel(instancias[u])
-    #ciudades,arcos,TT,JT = parameterscsv()    
-    ciudades,arcos,TT,JT = parameters("Small",batch[u],instancias[u])
-    
-    dist = {(i, j):distancia(i,j) for i, j in arcos}
-    trabajos = ciudades.copy()
-    nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
-    jt_aux = np.array(list(JT.values()))
-    jt_min = jt_aux[(jt_aux >= 1)].min()
-
-    with gp.Env(empty=True) as env:
-        env.setParam('OutputFlag', 0)
-        env.start()
-        with gp.Model(env=env) as modelo:
-            # Crear variables
-            Cmax = modelo.addVar(name="Cmax")
-            x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
-            z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
-            y = modelo.addVars(arcos,name = "y")
-            TS = modelo.addVars(ciudades,name="TS")
-
-            #Crear función objetivo
-            modelo.setObjective(Cmax, GRB.MINIMIZE)
-
-            #Esta restricción sin jt_min es equivalente al segundo conjunto de restricciones
-            modelo.addConstr(Cmax >= jt_min + quicksum(x[(i,j)]*TT[(i,j)] for i in ciudades for j in ciudades[1:] if i!=j))
-
-            #Restricciones
-            for i in ciudades[1:len(ciudades)]:
-                modelo.addConstr(Cmax >= TS[i] + quicksum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
-
-            for i in ciudades[1:len(ciudades)]:
-                modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
-
-            for k in trabajos[1:len(ciudades)]:
-                modelo.addConstr(quicksum(z[(i,k)] for i in ciudades if i != 0) == 1)
-
-            for i in ciudades[1:len(ciudades)]: 
-                modelo.addConstr(quicksum(z[(i,k)] for k in trabajos if k != 0) == 1)
-            
-            for i in ciudades: #12
-                modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
-
-            for j in ciudades: #13
-                modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
-
-            for i in ciudades[1:len(ciudades)]: #14
-                modelo.addConstr(quicksum(y[(i,j)] for j in ciudades if i !=j) - quicksum(y[(j,i)] for j in ciudades if i !=j) == 1)
-
-            for i in ciudades[1:len(ciudades)]: #15
-                for j in ciudades:
-                    if i!=j:
-                        modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
-
-            for i in ciudades: #16
-                for j in ciudades[1:len(ciudades)]:
-                    if i!=j:
-                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*30000 <= TS[j])
+def gurobi(tipo_instancia,subtour):
+    """
+    subour:\n
+          0=Sin restricciones 14-15 de subtour\n
+          1=Restricciones GG\n
+          2=Restricciones MTZ 
+    """
+    if subtour==0:
+        print("Instancias: ",tipo_instancia,", Sin subtour")
+    elif subtour == 1:
+        print("Instancias: ",tipo_instancia,"GG")
+    elif subtour == 2:
+        print("Instancias: ",tipo_instancia,"MTZ")
 
 
-            
-            # Restricción 2-degree
-            #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
+    if tipo_instancia=="tsplib":
+        instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
+    else:
+        instancias = [u for u in range(1,101)]
+        batch = [u//25+1 for u in range(100)]
 
-            # Parámetros
-            #modelo.Params.Threads = 6
-            #modelo.Params.LazyConstraints = 1
-            modelo.setParam('TimeLimit', 3600)
-            # imprimir modelo
-            modelo.optimize()
-            #modelo.write("file2.lp")
 
-            # for i in x:
-            #     if x[i].X>0.9:
-            #         print((round(x[i].X,0),i))   
+    for v in range(5,7):
+        global TT
+        global JT
+        if tipo_instancia=="tsplib":
+            ciudades,arcos,TT,JT = parametersexcel(instancias[v])
+        else:
+            ciudades,arcos,TT,JT = parameters("Small",batch[v],instancias[v])
+        #ciudades,arcos,TT,JT = parameterscsv()    
 
-            lower = modelo.ObjBoundC
-            objective = modelo.getObjective().getValue()
-            gap = round((objective-lower)/lower*100,4)
-
-            lower = round(modelo.ObjBoundC,4)
-            objective = round(modelo.getObjective().getValue(),4)
-            time = round(modelo.Runtime,2)
-            # instancia, bks, lower, gap, time
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[u],objective,lower,gap,time))
+        M = 0
+        for i in range(len(ciudades)):
+            maximo_t = 0
+            maximo_tt = 0
+            for j in range(len(ciudades)):
+                if i!=j and TT[(i,j)]>maximo_t:
+                    maximo_t = TT[(i,j)]
+                
+                if j!= 0 and JT[(j,i)]>maximo_tt:
+                    maximo_tt = JT[(j,i)]
+            M += maximo_t+maximo_tt      
 
 
 
+        dist = {(i, j):distancia(i,j) for i, j in arcos}
+        trabajos = ciudades.copy()
+        nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
+        jt_aux = np.array(list(JT.values()))
+        jt_min = jt_aux[(jt_aux >= 1)].min()
+
+        with gp.Env(empty=True) as env:
+            env.setParam('OutputFlag', 0)
+            env.start()
+            with gp.Model(env=env) as modelo:
+                # Crear variables
+                Cmax = modelo.addVar(name="Cmax")
+
+                x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
+                z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
+
+                if subtour==1: #Variable GG
+                    y = modelo.addVars(arcos,name = "y") 
+                elif subtour==2: #Variable MTZ
+                    u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
+  
+                TS = modelo.addVars(ciudades,name="TS")
+
+                #Crear función objetivo
+                modelo.setObjective(Cmax, GRB.MINIMIZE)
+
+                #Esta restricción sin jt_min es equivalente al segundo conjunto de restricciones
+                modelo.addConstr(Cmax >= jt_min + quicksum(x[(i,j)]*TT[(i,j)] for i in ciudades for j in ciudades[1:] if i!=j))
+
+                #Restricciones
+                for i in ciudades[1:len(ciudades)]:
+                    modelo.addConstr(Cmax >= TS[i] + quicksum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
+
+                for i in ciudades[1:len(ciudades)]:
+                    modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
+
+                for k in trabajos[1:len(ciudades)]:
+                    modelo.addConstr(quicksum(z[(i,k)] for i in ciudades if i != 0) == 1)
+
+                for i in ciudades[1:len(ciudades)]: 
+                    modelo.addConstr(quicksum(z[(i,k)] for k in trabajos if k != 0) == 1)
+                
+                for i in ciudades: #12
+                    modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
+
+                for j in ciudades: #13
+                    modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
+
+                #Restricción GG
+                if subtour == 1:
+                    for i in ciudades[1:len(ciudades)]: #14
+                        modelo.addConstr(quicksum(y[(i,j)] for j in ciudades if i !=j) - quicksum(y[(j,i)] for j in ciudades if i !=j) == 1)
+
+                    for i in ciudades[1:len(ciudades)]: #15
+                        for j in ciudades:
+                            if i!=j:
+                                modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
+                
+                #Restricción MTZ
+                if subtour ==2:
+                    for i,j in arcos:
+                        if i>0:
+                            modelo.addConstr(u[i] - u[j] + 1 <= M * (1 - x[(i,j)]) , "MTZ(%s,%s)" %(i, j))
+
+                for i in ciudades: #16
+                    for j in ciudades[1:len(ciudades)]:
+                        if i!=j:
+                            modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M <= TS[j])
+
+
+                
+                # Restricción 2-degree
+                #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
+
+                # Parámetros
+                #modelo.Params.Threads = 6
+                #modelo.Params.LazyConstraints = 1
+                modelo.setParam('TimeLimit', 3600)
+                # imprimir modelo
+                modelo.optimize()
+                #modelo.write("file2.lp")
+
+                # for i in x:
+                #     if x[i].X>0.9:
+                #         print(i)   
+
+                lower = modelo.ObjBoundC
+                objective = modelo.getObjective().getValue()
+                gap = round((objective-lower)/lower*100,4)
+
+                lower = round(modelo.ObjBoundC,4)
+                objective = round(modelo.getObjective().getValue(),4)
+                time = round(modelo.Runtime,2)
+                # instancia, bks, lower, gap, time
+                print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[v],objective,lower,gap,time))
+
+tipo = "tsplib"
+gurobi(tipo,0)
+gurobi(tipo,1)
+gurobi(tipo,2)
