@@ -4,9 +4,70 @@ from gurobipy import *
 import pandas as pd
 from itertools import combinations
 import numpy as np
+import os
+import tsplib95
+import lkh
 
 path = "Codigos/"
 #path=""
+
+def transformar_txt(size,batch,instancia,ruta,n):
+    archivo = open(ruta,"r")
+    lineas = [linea.split() for linea in archivo]
+    archivo.close()
+    lineas[0][0] = lineas[0][0].replace(","," ")
+    lineas[0][0] = str(10000000)+" "+ lineas[0][0][1:]
+    for i in lineas[1:-1]:
+        i[0] = i[0].replace(",,"," 10000000 ")
+        i[0] = i[0].replace(","," ")
+    lineas[-1][0] = lineas[-1][0].replace(","," ")
+    lineas[-1][0] = lineas[-1][0][:-1] +" "+str(10000000)
+    
+    archivo = open(path+size+"_"+str(batch)+"_"+str(instancia)+".txt","w")
+    archivo.write("NAME: prueba"+str(n+1)+"\n")
+    archivo.write("TYPE: TSP\n")
+    archivo.write(f"COMMENT: {n+1} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
+    archivo.write(f"DIMENSION: {n+1}\n")
+    archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+    for i in lineas:
+        archivo.write(i[0]+"\n")
+    archivo.close()
+
+def solve_lkh(size,batch,instancia,n):
+    ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    transformar_txt(size,batch,instancia,ruta_instancia,n)
+    #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
+    problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+    solver_path = path+'LKH-3.0.7/LKH'
+    ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
+    ciudad = [i-1 for i in ciudad]
+    os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+    return ciudad
+
+def heuristica_trabajos(ruta,JT):
+    
+    ciudad = ruta
+    trabajo = []
+    n = len(ciudad)  
+    cont = len(ruta)-1
+    #QUE RECORRA HACIA ATRÁS PARTIENDO DE DISTINTOS NODOS
+    while len(trabajo)<n:
+        tiempos = {(i,ciudad[cont]):JT[(i,ciudad[cont])] for i in range(1,n+1)}
+        nuevo = min(tiempos.items(),key=lambda x:x[1]) 
+        trabajo.append(nuevo[0][1])
+        cont -= 1
+    return trabajo
+
+def ordenar_arcos(ruta):
+    arcos = []
+    for i in range(len(ruta)-1):
+        arcos.append((str(ruta[i]),str(ruta[i+1])))
+    arcos.append((str(ruta[-1]),str(ruta[0])))
+    return arcos
+
+def ordenar_trabajos(ruta,trabajos):
+    return [(ruta[i],trabajos[i]) for i in range(len(ruta))]
+
 
 def distancia(i, j):
     global TT
@@ -101,16 +162,13 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-#instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-#instancias = [u for u in range(1,101)]
-#batch = [u//25+1 for u in range(100)]
-
-def gurobi(tipo_instancia,subtour):
+def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
     """
     subour:\n
           0=Sin restricciones 14-15 de subtour\n
           1=Restricciones GG\n
-          2=Restricciones MTZ 
+          2=Restricciones MTZ\n 
+          3=Restricciones DL
     """
     if subtour==0:
         print("Instancias: ",tipo_instancia,", Sin subtour")
@@ -118,7 +176,8 @@ def gurobi(tipo_instancia,subtour):
         print("Instancias: ",tipo_instancia,"GG")
     elif subtour == 2:
         print("Instancias: ",tipo_instancia,"MTZ")
-
+    elif subtour == 3:
+        print("Instancias: ",tipo_instancia,"DL")
 
     if tipo_instancia=="tsplib":
         instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
@@ -127,14 +186,29 @@ def gurobi(tipo_instancia,subtour):
         batch = [u//25+1 for u in range(100)]
 
 
-    for v in range(5,7):
+    #for v in range(len(instancias)):
+    for v in range(1):
         global TT
         global JT
         if tipo_instancia=="tsplib":
             ciudades,arcos,TT,JT = parametersexcel(instancias[v])
-        else:
+        
+        elif tipo_instancia.lower() == "small":
             ciudades,arcos,TT,JT = parameters("Small",batch[v],instancias[v])
-        #ciudades,arcos,TT,JT = parameterscsv()    
+            tsp_inicial = solve_lkh("Small",1,1,len(ciudades)-1)
+
+        elif tipo_instancia.lower() == "medium":
+            ciudades,arcos,TT,JT = parameters("Medium",batch[v],instancias[v])
+            tsp_inicial = solve_lkh("Medium",1,1,len(ciudades)-1)
+
+        elif tipo_instancia.lower() == "large":
+            ciudades,arcos,TT,JT = parameters("Large",batch[v],instancias[v])
+            tsp_inicial = solve_lkh("Large",1,1,len(ciudades)-1)
+        
+        else:
+            print("instancia erronea")
+            exit(0)
+
 
         M = 0
         for i in range(len(ciudades)):
@@ -146,21 +220,23 @@ def gurobi(tipo_instancia,subtour):
                 
                 if j!= 0 and JT[(j,i)]>maximo_tt:
                     maximo_tt = JT[(j,i)]
-            M += maximo_t+maximo_tt      
-
-
+            M += maximo_t #+maximo_tt      
+        M += sumarM
+        #print("M",M)
 
         dist = {(i, j):distancia(i,j) for i, j in arcos}
         trabajos = ciudades.copy()
         nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
         jt_aux = np.array(list(JT.values()))
         jt_min = jt_aux[(jt_aux >= 1)].min()
+        
+
+
 
         with gp.Env(empty=True) as env:
-            env.setParam('OutputFlag', 0)
+            env.setParam('OutputFlag',output)
             env.start()
             with gp.Model(env=env) as modelo:
-                # Crear variables
                 Cmax = modelo.addVar(name="Cmax")
 
                 x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
@@ -168,10 +244,16 @@ def gurobi(tipo_instancia,subtour):
 
                 if subtour==1: #Variable GG
                     y = modelo.addVars(arcos,name = "y") 
-                elif subtour==2: #Variable MTZ
+                    
+                elif subtour==2: #Variable MTZ y DL
                     u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
-  
+
+                elif subtour == 3:
+                    u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
+
                 TS = modelo.addVars(ciudades,name="TS")
+
+
 
                 #Crear función objetivo
                 modelo.setObjective(Cmax, GRB.MINIMIZE)
@@ -208,11 +290,20 @@ def gurobi(tipo_instancia,subtour):
                             if i!=j:
                                 modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
                 
-                #Restricción MTZ
-                if subtour ==2:
+                # #Restricción MTZ
+                elif subtour ==2:
                     for i,j in arcos:
                         if i>0:
                             modelo.addConstr(u[i] - u[j] + 1 <= M * (1 - x[(i,j)]) , "MTZ(%s,%s)" %(i, j))
+                        
+                #Restricción DL proposition 3
+                elif subtour == 3:
+                    n = len(ciudades)
+                    for i in range(1,len(ciudades)):
+                        modelo.addConstr(u[i] >= 1 + (n-3)*x[(i,0)] + quicksum(x[(j,i)] for j in ciudades[1:] if j != i))
+
+                    for i in range(1,len(ciudades)):
+                        modelo.addConstr(u[i] <= n-1 - (n-3)*x[(0,i)]- quicksum(x[(i,j)] for j in ciudades[1:] if j != i))
 
                 for i in ciudades: #16
                     for j in ciudades[1:len(ciudades)]:
@@ -225,19 +316,53 @@ def gurobi(tipo_instancia,subtour):
                 #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
 
                 # Parámetros
-                #modelo.Params.Threads = 6
                 #modelo.Params.LazyConstraints = 1
+                modelo.Params.Threads = 1
                 modelo.setParam('TimeLimit', 3600)
-                # imprimir modelo
-                modelo.optimize()
-                #modelo.write("file2.lp")
+                if sol_inicial == True and tipo_instancia != "tsplib":
+                    modelo.NumStart = 1
+                    modelo.update()
 
-                # for i in x:
-                #     if x[i].X>0.9:
-                #         print(i)   
+                    # imprimir modelo
+
+                    # Solucion inicial
+                    if tipo_instancia != "tsplib":
+                        arcos_inicial = ordenar_arcos(tsp_inicial)
+                        trabajos = heuristica_trabajos(tsp_inicial[1:],JT)
+                        arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
+                        for s in range(modelo.NumStart):
+                            # set StartNumber
+                            modelo.Params.StartNumber = s
+                            # now set MIP start values using the Start attribute, e.g.:
+                            for var in modelo.getVars(): #
+                                if var.VarName[0] == "x":
+                                    nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                                    if nombre_arco in arcos_inicial:
+                                        var.Start = 1
+                                    # else:
+                                    #     var.Start = 0
+
+                                elif var.VarName[0] == "z":
+                                    nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                                    if nombre_arco in arcos_inicial_trabjos:
+                                        var.Start = 1
+                                    # else:
+                                    #     var.Start = 0
+                                
+                                elif var.VarName == "Cmax":
+                                    #var.Start = <valor>
+                                    pass
+
+                
+
+
+                modelo.optimize()
+                
+                #modelo.write("file2.lp")
 
                 lower = modelo.ObjBoundC
                 objective = modelo.getObjective().getValue()
+
                 gap = round((objective-lower)/lower*100,4)
 
                 lower = round(modelo.ObjBoundC,4)
@@ -246,7 +371,11 @@ def gurobi(tipo_instancia,subtour):
                 # instancia, bks, lower, gap, time
                 print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[v],objective,lower,gap,time))
 
-tipo = "tsplib"
-gurobi(tipo,0)
-gurobi(tipo,1)
-gurobi(tipo,2)
+#tsplib, Small, Medium, Large
+tipo = "Large"
+
+gurobi(tipo , subtour = 0 , sumarM = 0 , sol_inicial = True , output = 1)
+# gurobi(tipo , subtour = 1 , sumarM = 0 , sol_inicial = True , output = 0)
+# gurobi(tipo , subtour = 2 , sumarM = 0 , sol_inicial = True , output = 0)
+# gurobi(tipo , subtour = 3 , sumarM = 0 , sol_inicial = True , output = 0)
+
