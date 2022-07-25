@@ -8,8 +8,8 @@ import os
 import tsplib95
 import lkh
 
-path = "Codigos/"
-#path=""
+#path = "Codigos/"
+path=""
 
 def transformar_txt(size,batch,instancia,ruta,n):
     archivo = open(ruta,"r")
@@ -164,11 +164,15 @@ def parameterscsv():
 
 def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
     """
-    subour:\n
+    <b>Tipo</b>: tsplib/Small/Medium/Large\n
+    subtour:\n
           0=Sin restricciones 14-15 de subtour\n
           1=Restricciones GG\n
           2=Restricciones MTZ\n 
-          3=Restricciones DL
+          3=Restricciones DL\n
+    sumarM: Cantidad a agregar al M de las restricciones\n
+    sol_inicial: True/False, para activar solucion inicial\n
+    output: Mostrar output de GUROBI
     """
     if subtour==0:
         print("Instancias: ",tipo_instancia,", Sin subtour")
@@ -372,7 +376,7 @@ def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
                 print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[v],objective,lower,gap,time))
 
 #tsplib, Small, Medium, Large
-tipo = "Large"
+tipo = "Small"
 
 gurobi(tipo , subtour = 0 , sumarM = 0 , sol_inicial = True , output = 1)
 # gurobi(tipo , subtour = 1 , sumarM = 0 , sol_inicial = True , output = 0)
