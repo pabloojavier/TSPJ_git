@@ -369,6 +369,6 @@ ruta ="output/tsplib/3.txt"
 # agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
-#instancia_prueba_stats("output/small/small1.txt")
-instancias_prueba("output/large/cluster.txt")
+instancia_prueba_stats("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/1.txt")
+#instancias_prueba("output/large/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")

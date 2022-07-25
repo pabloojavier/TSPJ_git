@@ -7,8 +7,8 @@ import pandas as pd
 from docplex.mp.model import Model
 #os.system("clear")
 
-#path = "Codigos/"
-path=""
+path = "Codigos/"
+#path=""
 
 def parameters(excel):
     TT = pd.read_excel(excel,sheet_name="TT",index_col=0)
