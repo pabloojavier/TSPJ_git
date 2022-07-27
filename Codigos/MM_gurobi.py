@@ -162,17 +162,16 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
+def gurobi(tipo_instancia,subtour,sol_inicial,output,sumarM=0):
     """
-    <b>Tipo</b>: tsplib/Small/Medium/Large\n
-    subtour:\n
-          0=Sin restricciones 14-15 de subtour\n
-          1=Restricciones GG\n
-          2=Restricciones MTZ\n 
-          3=Restricciones DL\n
+    Tipo: tsplib/Small/Medium/Large\n
+    subtour: 0=Sin restricciones 14-15 de subtour\n
+             1=Restricciones GG\n
+             2=Restricciones MTZ\n 
+             3=Restricciones DL\n
     sumarM: Cantidad a agregar al M de las restricciones\n
     sol_inicial: True/False, para activar solucion inicial\n
-    output: Mostrar output de GUROBI
+    output: True/False, para mostrar output de gurobi
     """
     if subtour==0:
         print("Instancias: ",tipo_instancia,", Sin subtour")
@@ -238,7 +237,7 @@ def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
 
 
         with gp.Env(empty=True) as env:
-            env.setParam('OutputFlag',output)
+            env.setParam('OutputFlag', 1 if output else 0)
             env.start()
             with gp.Model(env=env) as modelo:
                 Cmax = modelo.addVar(name="Cmax")
@@ -376,10 +375,10 @@ def gurobi(tipo_instancia,subtour,sumarM,sol_inicial,output):
                 print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[v],objective,lower,gap,time))
 
 #tsplib, Small, Medium, Large
-tipo = "Small"
+tipo = "tsplib"
 
-gurobi(tipo , subtour = 0 , sumarM = 0 , sol_inicial = True , output = 1)
-# gurobi(tipo , subtour = 1 , sumarM = 0 , sol_inicial = True , output = 0)
-# gurobi(tipo , subtour = 2 , sumarM = 0 , sol_inicial = True , output = 0)
-# gurobi(tipo , subtour = 3 , sumarM = 0 , sol_inicial = True , output = 0)
+gurobi(tipo , subtour = 0 , sol_inicial = True , output = False)
+# gurobi(tipo , subtour = 1 , sol_inicial = True , output = 0)
+# gurobi(tipo , subtour = 2 , sol_inicial = True , output = 0)
+# gurobi(tipo , subtour = 3 , sol_inicial = True , output = 0)
 
