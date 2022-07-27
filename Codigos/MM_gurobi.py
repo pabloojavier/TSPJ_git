@@ -378,7 +378,7 @@ def gurobi(tipo_instancia,subtour,sol_inicial,output,sumarM=0):
 tipo = "tsplib"
 
 gurobi(tipo , subtour = 0 , sol_inicial = True , output = False)
-# gurobi(tipo , subtour = 1 , sol_inicial = True , output = 0)
-# gurobi(tipo , subtour = 2 , sol_inicial = True , output = 0)
-# gurobi(tipo , subtour = 3 , sol_inicial = True , output = 0)
+# gurobi(tipo , subtour = 1 , sol_inicial = True , output = False)
+# gurobi(tipo , subtour = 2 , sol_inicial = True , output = False)
+# gurobi(tipo , subtour = 3 , sol_inicial = True , output = False)
 
