@@ -376,7 +376,7 @@ def costo_ciudad(ciudad,n):
     return suma
 
 def solve_lkh(n):
-    if type(instancia) == "int":
+    if isinstance(instancia,int):
         ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
         transformar_txt1(ruta_instancia,n)
         problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
@@ -389,7 +389,7 @@ def solve_lkh(n):
     solver_path = path+'LKH-3.0.7/LKH'
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad if i != 1]
-    if type(instancia)== "int":
+    if isinstance(instancia,int):
         os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
     else:
         os.remove(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt")
