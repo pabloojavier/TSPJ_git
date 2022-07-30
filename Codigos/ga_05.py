@@ -329,7 +329,7 @@ def vecinoMasCercano(n):
         actual = siguiente
     return ciudad
 
-def transformar_txt(ruta,n):
+def transformar_txt1(ruta,n):
     archivo = open(ruta,"r")
     lineas = [linea.split() for linea in archivo]
     archivo.close()
@@ -351,6 +351,18 @@ def transformar_txt(ruta,n):
         archivo.write(i[0]+"\n")
     archivo.close()
 
+def transformar_txt2(ruta):
+    datos = pd.read_excel(ruta,sheet_name="TT",index_col=0)
+    n = len(datos[0])
+    archivo = open(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
+    archivo.write("NAME: tsplib"+str(n)+"\n")
+    archivo.write("TYPE: TSP\n")
+    archivo.write(f"COMMENT: {n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
+    archivo.write(f"DIMENSION: {n}\n")
+    archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+    archivo.write(datos.replace(0,10000000).to_csv(header=None,index=False).replace(","," "))
+    archivo.close()
+
 def costo_ciudad(ciudad,n):
     suma_ac = [distancia(0, ciudad[0])]
     suma = suma_ac[-1]
@@ -364,14 +376,23 @@ def costo_ciudad(ciudad,n):
     return suma
 
 def solve_lkh(n):
-    ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
-    transformar_txt(ruta_instancia,n)
+    if type(instancia) == "int":
+        ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+        transformar_txt1(ruta_instancia,n)
+        problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    else:
+        ruta_instancia = path+"Data/instancias_paper/"+instancia+".xlsx"
+        transformar_txt2(ruta_instancia)
+        problem = tsplib95.load(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt")
+
     #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
-    problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
     solver_path = path+'LKH-3.0.7/LKH'
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad if i != 1]
-    os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    if type(instancia)== "int":
+        os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    else:
+        os.remove(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt")
     return ciudad
 
 def generarRuta(n):
@@ -775,7 +796,7 @@ def mutSet(ciudad,trabajos):
             #DosOpt_v2(ciudad,trabajos)
     
     value3 = random.uniform(0,1)
-    if value3<MS1: 
+    if value3<MS2: 
         value = random.uniform(0, 1)
         if value < P_JLS:
             busqueda_local_trabajos2(ciudad,trabajos)
@@ -1048,12 +1069,10 @@ def GA(ciudad,comparar,plot):
     else:
         return "%.2f"%log[-1]["min"],tiempo,"%.2f"%log[-1]["avg"],df,iteracion_mejor,promedio_p_inicial,mejor_inicial,tiempo_poblacion
 
-
-
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = "eil101"
+instancia = "gr17"
 size = "tsplib" if instancia in tsplib else "Small"
 
 #Cruzamiento
@@ -1074,10 +1093,9 @@ P_RPJ     = 0.3
 #Mutacion
 MS1       = 0.5
 MS2       = 0.5
-#Agregar MS2
-P_EM      = 0.25 #EM
-P_RM      = 0.25 #RM
-P_SM      = 0.25 #SM
+P_EM      = 0.25 
+P_RM      = 0.25 
+P_SM      = 0.25 
 P_2OPT    = 0.25 
 P_JLS     = 0.3
 P_JEM     = 0.7 #Exchange mutation job
@@ -1125,7 +1143,7 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "EM"   : P_EM    =  float(opts[i][1])  
     elif opts[i][0][1:] == "RM"   : P_RM    =  float(opts[i][1])  
     elif opts[i][0][1:] == "SM"   : P_SM    =  float(opts[i][1]) 
-    elif opts[i][0][1:] == "2OPT" : P_2OPT  =  float(opts[i][1])   
+    elif opts[i][0][1:] == "OPT2" : P_2OPT  =  float(opts[i][1])   
     elif opts[i][0][1:] == "JLS"  : P_JLS   =  float(opts[i][1])  
     elif opts[i][0][1:] == "JEM"  : P_JEM   =  float(opts[i][1])  
 
@@ -1137,6 +1155,7 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "TOURN": TOURN  = int(opts[i][1])
 
 if isinstance(instancia, int):
+    #batch = (instancia-1)//25+1
     if instancia <=25: batch = 1
     elif instancia <=50: batch = 2
     elif instancia <=75: batch = 3
