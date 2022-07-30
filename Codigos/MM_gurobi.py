@@ -7,6 +7,7 @@ import numpy as np
 import os
 import tsplib95
 import lkh
+import sys
 
 #path = "Codigos/"
 path=""
@@ -67,7 +68,6 @@ def ordenar_arcos(ruta):
 
 def ordenar_trabajos(ruta,trabajos):
     return [(ruta[i],trabajos[i]) for i in range(len(ruta))]
-
 
 def distancia(i, j):
     global TT
@@ -162,7 +162,7 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-def gurobi(tipo_instancia,subtour,sol_inicial,output,sumarM=0):
+def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     """
     Tipo: tsplib/Small/Medium/Large\n
     subtour: 0=Sin restricciones 14-15 de subtour\n
@@ -182,202 +182,229 @@ def gurobi(tipo_instancia,subtour,sol_inicial,output,sumarM=0):
     elif subtour == 3:
         print("Instancias: ",tipo_instancia,"DL")
 
-    if tipo_instancia=="tsplib":
-        instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
+    if tipo_instancia != "tsplib":
+        if instancia<=25: batch = 1
+        elif instancia<=50: batch = 2
+        elif instancia<=75: batch = 3
+        else: batch = 4
+
+
+
+    global TT
+    global JT
+    if tipo_instancia.lower()=="tsplib":
+        ciudades,arcos,TT,JT = parametersexcel(instancia)
+    
+    elif tipo_instancia.lower() == "small":
+        ciudades,arcos,TT,JT = parameters("Small",batch,instancia)
+        tsp_inicial = solve_lkh("Small",batch,instancia,len(ciudades)-1)
+
+    elif tipo_instancia.lower() == "medium":
+        ciudades,arcos,TT,JT = parameters("Medium",batch,instancia)
+        tsp_inicial = solve_lkh("Medium",batch,instancia,len(ciudades)-1)
+
+    elif tipo_instancia.lower() == "large":
+        ciudades,arcos,TT,JT = parameters("Large",batch,instancia)
+        tsp_inicial = solve_lkh("Large",batch,instancia,len(ciudades)-1)
+    
     else:
-        instancias = [u for u in range(1,101)]
-        batch = [u//25+1 for u in range(100)]
+        print("instancia erronea")
+        exit(0)
+
+    M = 0
+    for i in range(len(ciudades)):
+        maximo_t = 0
+        maximo_tt = 0
+        for j in range(len(ciudades)):
+            if i!=j and TT[(i,j)]>maximo_t:
+                maximo_t = TT[(i,j)]
+            
+            if j!= 0 and JT[(j,i)]>maximo_tt:
+                maximo_tt = JT[(j,i)]
+        M += maximo_t #+maximo_tt      
+    M += sumarM
+    #print("M",M)
+
+    dist = {(i, j):distancia(i,j) for i, j in arcos}
+    trabajos = ciudades.copy()
+    nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
+    jt_aux = np.array(list(JT.values()))
+    jt_min = jt_aux[(jt_aux >= 1)].min()
+    
 
 
-    for v in range(len(instancias)):
-    #for v in range(1):
-        global TT
-        global JT
-        if tipo_instancia=="tsplib":
-            ciudades,arcos,TT,JT = parametersexcel(instancias[v])
-        
-        elif tipo_instancia.lower() == "small":
-            ciudades,arcos,TT,JT = parameters("Small",batch[v],instancias[v])
-            tsp_inicial = solve_lkh("Small",batch[v],instancias[v],len(ciudades)-1)
 
-        elif tipo_instancia.lower() == "medium":
-            ciudades,arcos,TT,JT = parameters("Medium",batch[v],instancias[v])
-            tsp_inicial = solve_lkh("Medium",batch[v],instancias[v],len(ciudades)-1)
+    with gp.Env(empty=True) as env:
+        env.setParam('OutputFlag', 1 if output else 0)
+        env.start()
+        with gp.Model(env=env) as modelo:
+            Cmax = modelo.addVar(name="Cmax")
 
-        elif tipo_instancia.lower() == "large":
-            ciudades,arcos,TT,JT = parameters("Large",batch[v],instancias[v])
-            tsp_inicial = solve_lkh("Large",batch[v],instancias[v],len(ciudades)-1)
-        
-        else:
-            print("instancia erronea")
-            exit(0)
+            x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
+            z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
 
-        M = 0
-        for i in range(len(ciudades)):
-            maximo_t = 0
-            maximo_tt = 0
-            for j in range(len(ciudades)):
-                if i!=j and TT[(i,j)]>maximo_t:
-                    maximo_t = TT[(i,j)]
+            if subtour==1: #Variable GG
+                y = modelo.addVars(arcos,name = "y") 
                 
-                if j!= 0 and JT[(j,i)]>maximo_tt:
-                    maximo_tt = JT[(j,i)]
-            M += maximo_t #+maximo_tt      
-        M += sumarM
-        #print("M",M)
+            elif subtour==2: #Variable MTZ y DL
+                u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
 
-        dist = {(i, j):distancia(i,j) for i, j in arcos}
-        trabajos = ciudades.copy()
-        nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
-        jt_aux = np.array(list(JT.values()))
-        jt_min = jt_aux[(jt_aux >= 1)].min()
-        
+            elif subtour == 3:
+                u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
+
+            TS = modelo.addVars(ciudades,name="TS")
 
 
 
-        with gp.Env(empty=True) as env:
-            env.setParam('OutputFlag', 1 if output else 0)
-            env.start()
-            with gp.Model(env=env) as modelo:
-                Cmax = modelo.addVar(name="Cmax")
+            #Crear función objetivo
+            modelo.setObjective(Cmax, GRB.MINIMIZE)
 
-                x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
-                z = modelo.addVars(nodos_trabajos, vtype=GRB.BINARY, name='z')
+            #Esta restricción sin jt_min es equivalente al segundo conjunto de restricciones
+            modelo.addConstr(Cmax >= jt_min + quicksum(x[(i,j)]*TT[(i,j)] for i in ciudades for j in ciudades[1:] if i!=j))
 
-                if subtour==1: #Variable GG
-                    y = modelo.addVars(arcos,name = "y") 
-                    
-                elif subtour==2: #Variable MTZ y DL
-                    u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
+            #Restricciones
+            for i in ciudades[1:len(ciudades)]:
+                modelo.addConstr(Cmax >= TS[i] + quicksum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
 
-                elif subtour == 3:
-                    u = modelo.addVars(ciudades , vtype = GRB.CONTINUOUS , name = "u")
+            for i in ciudades[1:len(ciudades)]:
+                modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
 
-                TS = modelo.addVars(ciudades,name="TS")
+            for k in trabajos[1:len(ciudades)]:
+                modelo.addConstr(quicksum(z[(i,k)] for i in ciudades if i != 0) == 1)
 
+            for i in ciudades[1:len(ciudades)]: 
+                modelo.addConstr(quicksum(z[(i,k)] for k in trabajos if k != 0) == 1)
+            
+            for i in ciudades: #12
+                modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
 
+            for j in ciudades: #13
+                modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
 
-                #Crear función objetivo
-                modelo.setObjective(Cmax, GRB.MINIMIZE)
+            #Restricción GG
+            if subtour == 1:
+                for i in ciudades[1:len(ciudades)]: #14
+                    modelo.addConstr(quicksum(y[(i,j)] for j in ciudades if i !=j) - quicksum(y[(j,i)] for j in ciudades if i !=j) == 1)
 
-                #Esta restricción sin jt_min es equivalente al segundo conjunto de restricciones
-                modelo.addConstr(Cmax >= jt_min + quicksum(x[(i,j)]*TT[(i,j)] for i in ciudades for j in ciudades[1:] if i!=j))
-
-                #Restricciones
-                for i in ciudades[1:len(ciudades)]:
-                    modelo.addConstr(Cmax >= TS[i] + quicksum(z[(i,k)]*JT[(k,i)] for k in trabajos if k!=0 ))
-
-                for i in ciudades[1:len(ciudades)]:
-                    modelo.addConstr(Cmax >= TS[i] + x[(i,0)]*TT[(0,i)])
-
-                for k in trabajos[1:len(ciudades)]:
-                    modelo.addConstr(quicksum(z[(i,k)] for i in ciudades if i != 0) == 1)
-
-                for i in ciudades[1:len(ciudades)]: 
-                    modelo.addConstr(quicksum(z[(i,k)] for k in trabajos if k != 0) == 1)
-                
-                for i in ciudades: #12
-                    modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
-
-                for j in ciudades: #13
-                    modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
-
-                #Restricción GG
-                if subtour == 1:
-                    for i in ciudades[1:len(ciudades)]: #14
-                        modelo.addConstr(quicksum(y[(i,j)] for j in ciudades if i !=j) - quicksum(y[(j,i)] for j in ciudades if i !=j) == 1)
-
-                    for i in ciudades[1:len(ciudades)]: #15
-                        for j in ciudades:
-                            if i!=j:
-                                modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
-                
-                # #Restricción MTZ
-                elif subtour ==2:
-                    for i,j in arcos:
-                        if i>0:
-                            modelo.addConstr(u[i] - u[j] + 1 <= M * (1 - x[(i,j)]) , "MTZ(%s,%s)" %(i, j))
-                        
-                #Restricción DL proposition 3
-                elif subtour == 3:
-                    n = len(ciudades)
-                    for i in range(1,len(ciudades)):
-                        modelo.addConstr(u[i] >= 1 + (n-3)*x[(i,0)] + quicksum(x[(j,i)] for j in ciudades[1:] if j != i))
-
-                    for i in range(1,len(ciudades)):
-                        modelo.addConstr(u[i] <= n-1 - (n-3)*x[(0,i)]- quicksum(x[(i,j)] for j in ciudades[1:] if j != i))
-
-                for i in ciudades: #16
-                    for j in ciudades[1:len(ciudades)]:
+                for i in ciudades[1:len(ciudades)]: #15
+                    for j in ciudades:
                         if i!=j:
-                            modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M <= TS[j])
+                            modelo.addConstr(y[(i,j)]<= len(ciudades)*x[(i,j)])
+            
+            # #Restricción MTZ
+            elif subtour ==2:
+                for i,j in arcos:
+                    if i>0:
+                        modelo.addConstr(u[i] - u[j] + 1 <= M * (1 - x[(i,j)]) , "MTZ(%s,%s)" %(i, j))
+                    
+            #Restricción DL proposition 3
+            elif subtour == 3:
+                n = len(ciudades)
+                for i in range(1,len(ciudades)):
+                    modelo.addConstr(u[i] >= 1 + (n-3)*x[(i,0)] + quicksum(x[(j,i)] for j in ciudades[1:] if j != i))
+
+                for i in range(1,len(ciudades)):
+                    modelo.addConstr(u[i] <= n-1 - (n-3)*x[(0,i)]- quicksum(x[(i,j)] for j in ciudades[1:] if j != i))
+
+            for i in ciudades: #16
+                for j in ciudades[1:len(ciudades)]:
+                    if i!=j:
+                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M <= TS[j])
 
 
-                
-                # Restricción 2-degree
-                #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
+            
+            # Restricción 2-degree
+            #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
 
-                # Parámetros
-                #modelo.Params.LazyConstraints = 1
-                modelo.Params.Threads = 1
-                modelo.setParam('TimeLimit', 3600)
-                if sol_inicial == True and tipo_instancia != "tsplib":
-                    modelo.NumStart = 1
-                    modelo.update()
+            # Parámetros
+            #modelo.Params.LazyConstraints = 1
+            modelo.Params.Threads = 1
+            modelo.setParam('TimeLimit', 3600)
+            if sol_inicial == True and tipo_instancia != "tsplib":
+                modelo.NumStart = 1
+                modelo.update()
 
-                    # imprimir modelo
+                # imprimir modelo
 
-                    # Solucion inicial
-                    if tipo_instancia != "tsplib":
-                        arcos_inicial = ordenar_arcos(tsp_inicial)
-                        trabajos = heuristica_trabajos(tsp_inicial[1:],JT)
-                        arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
-                        for s in range(modelo.NumStart):
-                            # set StartNumber
-                            modelo.Params.StartNumber = s
-                            # now set MIP start values using the Start attribute, e.g.:
-                            for var in modelo.getVars(): #
-                                if var.VarName[0] == "x":
-                                    nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
-                                    if nombre_arco in arcos_inicial:
-                                        var.Start = 1
-                                    # else:
-                                    #     var.Start = 0
+                # Solucion inicial
+                if tipo_instancia != "tsplib":
+                    arcos_inicial = ordenar_arcos(tsp_inicial)
+                    trabajos = heuristica_trabajos(tsp_inicial[1:],JT)
+                    arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
+                    for s in range(modelo.NumStart):
+                        # set StartNumber
+                        modelo.Params.StartNumber = s
+                        # now set MIP start values using the Start attribute, e.g.:
+                        for var in modelo.getVars(): #
+                            if var.VarName[0] == "x":
+                                nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                                if nombre_arco in arcos_inicial:
+                                    var.Start = 1
+                                # else:
+                                #     var.Start = 0
 
-                                elif var.VarName[0] == "z":
-                                    nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
-                                    if nombre_arco in arcos_inicial_trabjos:
-                                        var.Start = 1
-                                    # else:
-                                    #     var.Start = 0
-                                
-                                elif var.VarName == "Cmax":
-                                    #var.Start = <valor>
-                                    pass
+                            elif var.VarName[0] == "z":
+                                nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                                if nombre_arco in arcos_inicial_trabjos:
+                                    var.Start = 1
+                                # else:
+                                #     var.Start = 0
+                            
+                            elif var.VarName == "Cmax":
+                                #var.Start = <valor>
+                                pass
 
-                
+            
 
 
-                modelo.optimize()
-                
-                #modelo.write("file2.lp")
+            modelo.optimize()
+            
+            #modelo.write("file2.lp")
 
-                lower = modelo.ObjBoundC
-                objective = modelo.getObjective().getValue()
+            lower = modelo.ObjBoundC
+            objective = modelo.getObjective().getValue()
 
-                gap = round((objective-lower)/lower*100,4)
+            gap = round((objective-lower)/lower*100,4)
 
-                lower = round(modelo.ObjBoundC,4)
-                objective = round(modelo.getObjective().getValue(),4)
-                time = round(modelo.Runtime,2)
-                # instancia, bks, lower, gap, time
-                print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancias[v],objective,lower,gap,time))
+            lower = round(modelo.ObjBoundC,4)
+            objective = round(modelo.getObjective().getValue(),4)
+            time = round(modelo.Runtime,2)
+            # instancia, bks, lower, gap, time
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
 
-#tsplib, Small, Medium, Large
-tipo = "Small"
 
-gurobi(tipo , subtour = 0 , sol_inicial = True , output = False)
+argv = sys.argv[1:]
+opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
+tipo      = "Small"
+instancia = 1
+t_sub     = 0
+sol_in    = True
+output    = False
+sumar_m   = 0
+
+
+
+
+for i in range(len(opts)):
+    if opts[i][0][1:] == "tipo":  tipo  = (opts[i][1])
+    elif   opts[i][0][1:] == "subtour": t_sub = int(opts[i][1])
+    elif opts[i][0][1:] == "instancia":
+        try:
+            instancia = int(opts[i][1])  
+        except ValueError:
+            instancia = opts[i][1]  
+    elif   opts[i][0][1:] == "solinicial": sol_in = True if str(opts[i][1]) =="True" else False
+    elif   opts[i][0][1:] == "output": output = True if str(opts[i][1]) =="True" else False
+    elif   opts[i][0][1:] == "sumarM": sumar_m = int(opts[i][1])
+
+#print(tipo,instancia,t_sub,sol_in,output,sumar_m)
+gurobi(tipo,instancia,subtour=t_sub,sol_inicial=sol_in,output=output,sumarM=sumar_m)
+
+#gurobi(tipo , subtour = 0 , sol_inicial = True , output = False)
 # gurobi(tipo , subtour = 1 , sol_inicial = True , output = False)
 # gurobi(tipo , subtour = 2 , sol_inicial = True , output = False)
 # gurobi(tipo , subtour = 3 , sol_inicial = True , output = False)
+
+
+
 

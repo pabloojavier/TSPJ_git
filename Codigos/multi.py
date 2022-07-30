@@ -23,11 +23,16 @@ def launcher2(semilla,paralelo,_size,_batch,_instancia ,**kwargs):
     os.system(ejecutar)
     #os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -OX {OX} -PMX {PMX} -UPMX {UPMX} -XNULL {XNULL} -NNH {NNH} -TSP {TSP} -MS1 {MS1} -MS2 {MS2} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
 
+def launcher3(tipo,instancia,subtour,solin,output,sumarm):
+    os.system(f"/usr/local/bin/python3.9 MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
+
 #Valores por defecto
 paralelo = "paralelo"
 size = "Medium"
 batch = 1
 instancia = "1"
+alg = "ag"
+subtour = None
 
 #Cruzamiento
 P_OX      = 0.4
@@ -66,8 +71,8 @@ tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
-if len(opts)<2:
-    print("multi.py -p <paralelo/secuencial> -size <tsplib/Small/Medium/Prueba>")
+if len(opts)<3:
+    print("multi.py -p <paralelo/secuencial> -size <tsplib/Small/Medium/Prueba> -alg <ag/gurobi>")
     exit(0)
 if len(argv)%2 != 0:
     print("Error, falta un parametro o valor")
@@ -75,8 +80,9 @@ if len(argv)%2 != 0:
 
 for i in range(len(opts)):
     if opts[i][0][1:] == "p": paralelo = opts[i][1]
-    elif opts[i][0][1:] == "size": size = str(opts[i][1]) 
-
+    elif opts[i][0][1:] == "size": size = str(opts[i][1])
+    elif opts[i][0][1:] == "alg": alg = str(opts[i][1])
+    elif opts[i][0][1:] == "subtour": subtour = int(opts[i][1])
     elif opts[i][0][1:] == "OX"   : P_OX    =  float(opts[i][1])
     elif opts[i][0][1:] == "PMX"  : P_PMX   =  float(opts[i][1])  
     elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])  
@@ -119,6 +125,18 @@ if paralelo.lower() not in ["paralelo","secuencial"]:
     print("Tipo de ejecución mal ingresado. (paralelo/secuencial)")
     exit(0)
 
+if alg.lower() not in ["ag","gurobi"]:
+    print("Algoritmo mal ingresado. (ag/gurobi)")
+    exit(0)
+
+if alg.lower() == "gurobi" and subtour == None:
+    print("Error, ingresar subtour. -subtour <0/1/2/3> (0:Nada / 1:GG / 2: MTZ / 3: DL)")
+    exit(0)
+
+if subtour != None and (subtour<0 or subtour >3):
+    print("Error, ingresar subtour. -subtour <0/1/2/3> (0:Nada / 1:GG / 2: MTZ / 3: DL)")
+    exit(0)
+
 size = size.capitalize()
 
 parameters_value = {"OX": P_OX, "PMX": P_PMX, "UPMX": P_UPMX, "XNULL": P_XNULL,  #Cruzamiento
@@ -127,32 +145,49 @@ parameters_value = {"OX": P_OX, "PMX": P_PMX, "UPMX": P_UPMX, "XNULL": P_XNULL, 
                     "POB":POBLACION , "CXPB":CXPB, "MUTPB":MUTPB, "IT": IT , "ELITE": ELITE, "TOURN":TOURN} #Overall 
 
 
+
 if paralelo.lower() == "paralelo":
     if __name__=="__main__":
         seed = [i for i in range(10)]
         pool = multiprocessing.Pool(processes=max(1, multiprocessing.cpu_count()-2))
 
         if size.lower() in ["small","medium","large"]:
-            #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
-            print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
-            instancias = [i for i in range(1,101) ]
-            u = 0
-            for _product in itertools.product(instancias,seed):
-                _instancia,_seed = _product
-                if _instancia<=25: _batch = 1
-                elif _instancia<=50: _batch = 2
-                elif _instancia<=75: _batch = 3
-                else: _batch = 4
+            if alg == "ag":
+                #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
+                print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
+                instancias = [i for i in range(1,101) ]
+                u = 0
+                for _product in itertools.product(instancias,seed):
+                    _instancia,_seed = _product
+                    if _instancia<=25: _batch = 1
+                    elif _instancia<=50: _batch = 2
+                    elif _instancia<=75: _batch = 3
+                    else: _batch = 4
+                    pool.apply_async(launcher2, args=(_seed,"paralelo",size,_batch,_instancia),kwds=parameters_value)
+            
+            else:
+                print("{:<10}{:<10}{:<10}{:<10}{:<10}".format("ins","obj","lb","gap","time"))
+                instancias = [i for i in range(1,101) ]
+                for instancia in instancias:
+                    #print("a")
+                    pool.apply_async(launcher3, args=(size,instancia,subtour,True,False,0))
+                pool.close()
+                pool.join()
 
-                pool.apply_async(launcher2, args=(_seed,"paralelo",size,_batch,_instancia),kwds=parameters_value)
         else:
-            #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
-            print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
             instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-            for _product in itertools.product(instancias,seed):
-                _instancia,_seed = _product
-                pool.apply_async(launcher1, args=(_seed,"paralelo",_instancia) , kwds=parameters_value)
-
+            if alg == "ag":
+                #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
+                print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
+                for _product in itertools.product(instancias,seed):
+                    _instancia,_seed = _product
+                    pool.apply_async(launcher1, args=(_seed,"paralelo",_instancia) , kwds=parameters_value)
+            else:
+                print("{:<10}{:<10}{:<10}{:<10}{:<10}".format("ins","obj","lb","gap","time"))
+                for instancia in instancias:
+                    pool.apply_async(launcher3, args=(size.lower(),instancia,subtour,True,False,0))
+                pool.close()
+                pool.join()    
         pool.close()
         pool.join()
         #print(time.time()-inicio)
@@ -162,18 +197,26 @@ else:
         instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
         #semilla,instancia,mejor,poblacion,tiempo,mejor inicial, poblacion inicial, iteracion mejor,tiempo_poblacion
         print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
-        for i in instancias:
-            for j in range(10):
-                launcher1(j,"secuencial",i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+        if alg == "ag":
+            for i in instancias:
+                for j in range(10):
+                    launcher1(j,"secuencial",i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+        else:
+            for i in instancias:
+                launcher3(size.lower(),i,subtour,True,False,0)
     else:
-        instancias = [i for i in range(1,101) ]
+        instancias = [i for i in range(1,101)]
         #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
         print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
-        for i in instancias:
-            for j in range(10):
-                if i<=25: _batch = 1
-                elif i<=50: _batch = 2
-                elif i<=75: _batch = 3
-                else: _batch = 4
-                launcher2(j,"paralelo",size,_batch,i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+        if alg == "ag":
+            for i in instancias:
+                for j in range(10):
+                    if i<=25: _batch = 1
+                    elif i<=50: _batch = 2
+                    elif i<=75: _batch = 3
+                    else: _batch = 4
+                    launcher2(j,"paralelo",size,_batch,i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+        else:
+            for i in instancias:
+                launcher3(size.lower(),i,subtour,True,False,0)
     #print(time.time()-inicio)

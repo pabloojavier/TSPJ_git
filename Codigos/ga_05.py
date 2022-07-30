@@ -1110,7 +1110,6 @@ TOURN     = 4
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
-paralelo = "secuencial"
 multi = False
 mbool = True
 
@@ -1118,7 +1117,6 @@ mbool = True
 for i in range(len(opts)):
     if opts[i][0][1:] == "multi":  multi  = (opts[i][1])
     elif   opts[i][0][1:] == "seed": semilla = int(opts[i][1])
-    elif opts[i][0][1:] == "paralelo": paralelo = opts[i][1]
     #elif opts[i][0][1:] == "tipo": tipo = opts[i][1] 
     elif opts[i][0][1:] == "size": size = str(opts[i][1]) 
     elif opts[i][0][1:] == "batch" : batch = int(opts[i][1]) 
