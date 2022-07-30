@@ -24,8 +24,8 @@ import tsplib95
 import lkh
 
 
-path = "Codigos/"
-#path=""
+#path = "Codigos/"
+path=""
 flagRutas = False
 ciudad_gurobi = []
 #os.system("clear")
@@ -395,7 +395,7 @@ def generarRuta(n):
 
     elif aleatorio <P_NNH+P_TSP:
         if flagRutas==False:
-            if n<150:
+            if n<15:
                 ciudad = tsp_gurobi_cortes(n,2000)
             else:
                 ciudad = solve_lkh(n)
@@ -775,7 +775,7 @@ def mutSet(ciudad,trabajos):
             #DosOpt_v2(ciudad,trabajos)
     
     value3 = random.uniform(0,1)
-    if value3<MS1:
+    if value3<MS1: 
         value = random.uniform(0, 1)
         if value < P_JLS:
             busqueda_local_trabajos2(ciudad,trabajos)
@@ -1053,7 +1053,7 @@ def GA(ciudad,comparar,plot):
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = 1
+instancia = "eil101"
 size = "tsplib" if instancia in tsplib else "Small"
 
 #Cruzamiento
@@ -1073,6 +1073,8 @@ P_RPJ     = 0.3
 
 #Mutacion
 MS1       = 0.5
+MS2       = 0.5
+#Agregar MS2
 P_EM      = 0.25 #EM
 P_RM      = 0.25 #RM
 P_SM      = 0.25 #SM
@@ -1118,7 +1120,8 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "NNHJ" : P_NNHJ  =  float(opts[i][1]) 
     elif opts[i][0][1:] == "RPJ"  : P_RPJ   =  float(opts[i][1]) 
 
-    elif opts[i][0][1:] == "MS1"  : MS1     =  float(opts[i][1]) 
+    elif opts[i][0][1:] == "MS1"  : MS1     =  float(opts[i][1])
+    elif opts[i][0][1:] == "MS2"  : MS2     =  float(opts[i][1]) 
     elif opts[i][0][1:] == "EM"   : P_EM    =  float(opts[i][1])  
     elif opts[i][0][1:] == "RM"   : P_RM    =  float(opts[i][1])  
     elif opts[i][0][1:] == "SM"   : P_SM    =  float(opts[i][1]) 
