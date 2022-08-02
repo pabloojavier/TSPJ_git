@@ -361,15 +361,17 @@ def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             
             #modelo.write("file2.lp")
 
+
             lower = modelo.ObjBoundC
             objective = modelo.getObjective().getValue()
-
+            if modelo.Status == GRB.OPTIMAL:
+                lower = modelo.getObjective().getValue()
+                #print("Status", modelo.Status, GRB.OPTIMAL)
             gap = round((objective-lower)/lower*100,4)
-
-            lower = round(modelo.ObjBoundC,4)
-            objective = round(modelo.getObjective().getValue(),4)
-            time = round(modelo.Runtime,2)
-            # instancia, bks, lower, gap, time
+            lower = round(lower,4)
+            objective = round(objective,4)
+            time = round(modelo.Runtime,4)
+            # instancia, bks, lower, gap, tim
             print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
 
 
