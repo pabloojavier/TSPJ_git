@@ -416,7 +416,7 @@ def generarRuta(n):
 
     elif aleatorio <P_NNH+P_TSP:
         if flagRutas==False:
-            if n<15:
+            if n<150:
                 ciudad = tsp_gurobi_cortes(n,2000)
             else:
                 ciudad = solve_lkh(n)

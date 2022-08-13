@@ -36,13 +36,17 @@ def transformar_txt(size,batch,instancia,ruta,n):
 
 def solve_lkh(size,batch,instancia,n):
     ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    if output == True:
+        print("Creando archivo .txt ...")
     transformar_txt(size,batch,instancia,ruta_instancia,n)
     #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
     problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
     solver_path = path+'LKH-3.0.7/LKH'
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad]
-    #os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+    os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+    if output==True:
+        print("Archivo .txt eliminado")
     return ciudad
 
 def heuristica_trabajos(ruta,JT):
@@ -162,7 +166,7 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
-def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
+def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     """
     Tipo: tsplib/Small/Medium/Large\n
     subtour: 0=Sin restricciones 14-15 de subtour\n
@@ -173,14 +177,14 @@ def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     sol_inicial: True/False, para activar solucion inicial\n
     output: True/False, para mostrar output de gurobi
     """
-    if subtour==0:
-        print("Instancias: ",tipo_instancia,", Sin subtour")
-    elif subtour == 1:
-        print("Instancias: ",tipo_instancia,"GG")
-    elif subtour == 2:
-        print("Instancias: ",tipo_instancia,"MTZ")
-    elif subtour == 3:
-        print("Instancias: ",tipo_instancia,"DL")
+    # if subtour==0:
+    #     print("Instancias: ",tipo_instancia,", Sin subtour")
+    # elif subtour == 1:
+    #     print("Instancias: ",tipo_instancia,"GG")
+    # elif subtour == 2:
+    #     print("Instancias: ",tipo_instancia,"MTZ")
+    # elif subtour == 3:
+    #     print("Instancias: ",tipo_instancia,"DL")
 
     if tipo_instancia != "tsplib":
         if instancia<=25: batch = 1
@@ -319,7 +323,7 @@ def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             # Parámetros
             #modelo.Params.LazyConstraints = 1
             modelo.Params.Threads = 1
-            modelo.setParam('TimeLimit', 3600)
+            modelo.setParam('TimeLimit', 1500)
             if sol_inicial == True and tipo_instancia != "tsplib":
                 modelo.NumStart = 1
                 modelo.update()
@@ -354,32 +358,41 @@ def gurobi(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
                                 #var.Start = <valor>
                                 pass
 
-            
-
-
             modelo.optimize()
-            
+            dict_status = {1: 'LOADED', 2: 'OPTIMAL', 3: 'INFEASIBLE', 4: 'INF_OR_UNBD', 5: 'UNBOUNDED', 6: 'CUTOFF', 7: 'ITERATION_LIMIT', 8: 'NODE_LIMIT', 9: 'TIME_LIMIT', 10: 'SOLUTION_LIMIT', 11: 'INTERRUPTED', 12: 'NUMERIC', 13: 'SUBOPTIMAL', 14: 'INPROGRESS', 15: 'USER_OBJ_LIMIT'}
             #modelo.write("file2.lp")
 
-
             lower = modelo.ObjBoundC
-            objective = modelo.getObjective().getValue()
-            if modelo.Status == GRB.OPTIMAL:
+            gap = float("inf")
+            objective = float("inf")
+            if modelo.Status == GRB.OPTIMAL or modelo.SolCount > 0:
+                objective = modelo.getObjective().getValue()
                 lower = modelo.getObjective().getValue()
                 #print("Status", modelo.Status, GRB.OPTIMAL)
-            gap = round((objective-lower)/lower*100,4)
-            lower = round(lower,4)
-            objective = round(objective,4)
+                gap = round((objective-lower)/lower*100,4)
+                lower = round(lower,4)
+                objective = round(objective,4)
+
+            # else:
+            #     #print(instancia, ':Optimization ended with status %d' % modelo.Status)
+            #     if modelo.SolCount > 0:
+            #         objective = modelo.getObjective().getValue()
+            #         lower = modelo.getObjective().getValue()
+            #         #print("Status", modelo.Status, GRB.OPTIMAL)
+            #         gap = round((objective-lower)/lower*100,4)
+            #         lower = round(lower,4)
+            #         objective = round(objective,4)
+
             time = round(modelo.Runtime,4)
-            # instancia, bks, lower, gap, tim
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}".format(instancia,objective,lower,gap,time))
+            # instancia, bks, lower, gap, time
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}".format(instancia,objective,lower,gap,time,dict_status[modelo.Status],modelo.SolCount))
 
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
-tipo      = "Small"
+tipo      = "Large"
 instancia = 1
-t_sub     = 0
+t_sub     = 1
 sol_in    = True
 output    = False
 sumar_m   = 0
@@ -400,13 +413,4 @@ for i in range(len(opts)):
     elif   opts[i][0][1:] == "sumarM": sumar_m = int(opts[i][1])
 
 #print(tipo,instancia,t_sub,sol_in,output,sumar_m)
-gurobi(tipo,instancia,subtour=t_sub,sol_inicial=sol_in,output=output,sumarM=sumar_m)
-
-#gurobi(tipo , subtour = 0 , sol_inicial = True , output = False)
-# gurobi(tipo , subtour = 1 , sol_inicial = True , output = False)
-# gurobi(tipo , subtour = 2 , sol_inicial = True , output = False)
-# gurobi(tipo , subtour = 3 , sol_inicial = True , output = False)
-
-
-
-
+gurobi_solver(tipo,instancia,subtour=t_sub,sol_inicial=sol_in,output=output,sumarM=sumar_m)
