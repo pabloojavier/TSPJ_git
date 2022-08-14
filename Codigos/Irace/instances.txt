@@ -1,0 +1,22 @@
+# Example training instances file
+gr24
+gr48
+eil51
+fri26
+berlin52
+23 -size small
+5  -size small
+# 28 -size small
+# 93 -size small
+# 71 -size small
+# 56 -size small
+# 42 -size medium
+# 66 -size medium
+# 80 -size medium
+# 75 -size medium
+# 21 -size medium
+# 73 -size large 
+# 67 -size large
+# 62 -size large
+# 51 -size large
+# 45 -size large

@@ -1,0 +1,29 @@
+### Parameter file for the PTSP software
+# name       switch           type values               [conditions (using R syntax)]
+P_OX         "-OX"             r  (0.00, 1.00) 
+P_PMX        "-PMX"            r  (0.00, 1.00)
+P_UMPX       "-UMPX"           r  (0.00, 1.00)
+P_XNULL      "-XNULL"          r  (0.00, 1.00)
+P_NNH        "-NNH"            r  (0.00, 1.00)
+P_TSP        "-TSP"            r  (0.00, 1.00)
+P_RPT        "-RPT"            r  (0.00, 1.00)
+P_NNHJ       "-NNHJ"           r  (0.00, 1.00)
+P_RPJ        "-RPJ"            r  (0.00, 1.00)
+MS1          "-MS1"            r  (0.00, 1.00)
+MS2          "-MS2"            r  (0.00, 1.00)
+P_EM         "-EM"             r  (0.00, 1.00)
+P_RM         "-RM"             r  (0.00, 1.00)
+P_SM         "-SM"             r  (0.00, 1.00)
+P_2OPT       "-OPT2"           r  (0.00, 1.00)
+P_JLS        "-JLS"            r  (0.00, 1.00)
+P_JEM        "-JEM"            r  (0.00, 1.00)
+POBLACION    "-POB"            c  (25,50,75,100)
+CXPB         "-CXPB"           r  (0.00, 1.00)
+MUTPB        "-MUTPB"          r  (0.00, 1.00)
+IT           "-IT"             c  (100,200,300,400,500,600,700,800,900,1000)
+ELITE        "-ELITE"          r  (0.00, 0.2)
+#TOURN        "-TOURN"          r  (100,200,300,400,500,600,700,800,900,1000)
+
+
+
+
