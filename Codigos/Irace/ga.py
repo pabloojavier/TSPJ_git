@@ -986,7 +986,7 @@ def GA(ciudad,comparar,plot):
     if comparar == True:
         df = pd.DataFrame(columns=["gen","avg","min","std"])
         df.loc[0] = [log[-1]["gen"], "%.2f"%log[-1]["avg"], "%.2f"%log[-1]["min"], "%.2f"%log[-1]["std"]]
-    timeLimit = 10
+    timeLimit = 1800
     iteracion_mejor = 0
     # Proceso evolutivo
     while g < iterMax and time.time() - inicioTiempo <= timeLimit:
