@@ -41,9 +41,9 @@ digits = 3
 ############################################################################
 repairConfiguration = function (configuration, parameters, digits)
 {
-columns1 <- c("P_OX","P_PMX","P_UMPX", "P_XNULL")
+columns1 <- c("P_OX","P_PMX","P_UMPX")
 configuration[columns1]<-configuration[columns1] / sum(configuration[columns1])
-columns2 <- c("P_EM","P_SM","P_RM")
+columns2 <- c("P_EM","P_SM","P_RM","P_2OPT")
 configuration[columns2]<-configuration[columns2] / sum(configuration[columns2])
 return(configuration)
 }

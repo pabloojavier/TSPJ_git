@@ -1,22 +1,21 @@
 # Example training instances file
-gr24
-gr48
-eil51
-fri26
-berlin52
-23 -size small
-5  -size small
-# 28 -size small
-# 93 -size small
-# 71 -size small
-# 56 -size small
-# 42 -size medium
-# 66 -size medium
-# 80 -size medium
-# 75 -size medium
-# 21 -size medium
-# 73 -size large 
-# 67 -size large
-# 62 -size large
-# 51 -size large
-# 45 -size large
+gr24 -size tsplib
+gr48 -size tsplib
+eil51 -size tsplib
+bays29 -size tsplib
+eil76 -size tsplib
+34 -size Small
+77  -size Small
+81 -size Small
+97 -size Small
+100 -size Small
+1 -size Medium
+14 -size Medium
+18 -size Medium
+29 -size Medium
+58 -size Medium
+1 -size Large 
+9 -size Large
+14 -size Large
+47 -size Large
+78 -size Large

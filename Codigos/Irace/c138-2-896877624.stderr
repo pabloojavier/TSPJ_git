@@ -1,0 +1,12 @@
+/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/requests/__init__.py:102: RequestsDependencyWarning: urllib3 (1.26.6) or chardet (5.0.0)/charset_normalizer (2.0.2) doesn't match a supported version!
+  warnings.warn("urllib3 ({}) or chardet ({})/charset_normalizer ({}) doesn't match a supported "
+Traceback (most recent call last):
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 1176, in <module>
+    m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial,t_poblacion = GA(ciudad,mbool,False)
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 1002, in GA
+    toolbox.mate(child1[1], child2[1])
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 198, in cruzamiento
+    OX(ind1,ind2)
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 67, in OX
+    if (i < a or i > b):
+KeyboardInterrupt
