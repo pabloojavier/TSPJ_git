@@ -361,14 +361,14 @@ def instancia_prueba_stats(ruta):
         print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]))
     
 
-ruta ="output/tsplib/3.txt"
+ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/3.txt"
 
 #Para instancias TSPLIB
-# minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
-# agVsMosayebiV2_stats(tiempos,minimos,avgs,mejor_inicial,avg_mejor_inicial,iteracion,t_pob,"La1tex")
+#minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
+#agVsMosayebiV2_stats(tiempos,minimos,avgs,mejor_inicial,avg_mejor_inicial,iteracion,t_pob,"La1tex")
 # agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
-instancia_prueba_stats("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/1.txt")
-#instancias_prueba("output/large/cluster.txt")
+instancia_prueba_stats("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/large/cluster.txt")
+#instancias_prueba("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")
