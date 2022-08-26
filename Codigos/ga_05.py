@@ -200,8 +200,8 @@ def cruzamiento(ind1,ind2):
         PMX(ind1,ind2)
     elif value<P_OX+P_PMX+P_UMPX:
         UMPX(ind1,ind2)
-    else:
-        pass
+    # else:
+    #     pass
 
 def parametersexcel(excel):
 
@@ -781,7 +781,6 @@ def perturbation3(ciudad):
 
 def mutSet(ciudad,trabajos):
     value2 = random.uniform(0,1)
-
     if value2<MS1:
         value = random.uniform(0, 1)
         if value < P_EM:
@@ -790,7 +789,7 @@ def mutSet(ciudad,trabajos):
             perturbation2(ciudad)
         elif value <P_EM+P_RM+P_SM:
             perturbation3(ciudad)
-        else:
+        elif value <P_EM+P_RM+P_SM+P_2OPT:
             DosOpt(ciudad)
             #busqueda_local_trabajos2(ciudad,trabajos)
             #DosOpt_v2(ciudad,trabajos)
@@ -1076,10 +1075,9 @@ instancia = "gr17"
 size = "tsplib" if instancia in tsplib else "Small"
 
 #Cruzamiento
-P_OX      = 0.4
-P_PMX     = 0.2
-P_UMPX    = 0.2
-P_XNULL   = 0.2
+P_OX      = 0.5
+P_PMX     = 0.25
+P_UMPX    = 0.25
 
 #Tour
 P_NNH     = 0.5
@@ -1128,7 +1126,6 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "OX"   : P_OX    =  float(opts[i][1])
     elif opts[i][0][1:] == "PMX"  : P_PMX   =  float(opts[i][1])  
     elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])  
-    elif opts[i][0][1:] == "XNULL": P_XNULL =  float(opts[i][1])  
 
     elif opts[i][0][1:] == "NNH"  : P_NNH   =  float(opts[i][1]) 
     elif opts[i][0][1:] == "TSP"  : P_TSP   =  float(opts[i][1]) 

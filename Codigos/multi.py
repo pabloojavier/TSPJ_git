@@ -21,7 +21,7 @@ def launcher2(semilla,paralelo,_size,_batch,_instancia ,**kwargs):
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
-    #os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -OX {OX} -PMX {PMX} -UPMX {UPMX} -XNULL {XNULL} -NNH {NNH} -TSP {TSP} -MS1 {MS1} -MS2 {MS2} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
+    #os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -OX {OX} -PMX {PMX} -UPMX {UPMX} -NNH {NNH} -TSP {TSP} -MS1 {MS1} -MS2 {MS2} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
 
 def launcher3(tipo,instancia,subtour,solin,output,sumarm):
     os.system(f"/usr/local/bin/python3.9 MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
@@ -35,10 +35,9 @@ alg = "ag"
 subtour = None
 
 #Cruzamiento
-P_OX      = 0.4
-P_PMX     = 0.2
-P_UPMX    = 0.2
-P_XNULL   = 0.2
+P_OX      = 0.5
+P_PMX     = 0.25
+P_UPMX    = 0.25
 
 #Tour
 P_NNH     = 0.5
@@ -85,8 +84,7 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "subtour": subtour = int(opts[i][1])
     elif opts[i][0][1:] == "OX"   : P_OX    =  float(opts[i][1])
     elif opts[i][0][1:] == "PMX"  : P_PMX   =  float(opts[i][1])  
-    elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])  
-    elif opts[i][0][1:] == "XNULL": P_XNULL =  float(opts[i][1])  
+    elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])    
 
     elif opts[i][0][1:] == "NNH"  : P_NNH   =  float(opts[i][1]) 
     elif opts[i][0][1:] == "TSP"  : P_TSP   =  float(opts[i][1]) 
@@ -113,7 +111,7 @@ for i in range(len(opts)):
         print(f"Parametro '{opts[i][0][1:]}' desconocido")
         print("Ejecutar con:   python3.9 multi.py -p <paralelo/secuencial> -size <tsplib/Small/Medium/Large>")
         print("Lista de parametros:")
-        for i in [["OX","PMX","UPMX","XNULL"],["NNH","TSP","RPT","NNHJ","RPJ"],["MS1","MS2","EM","RM","SM","OPT2","JLS","JEM"],["POB","CXPB","MUTPB","IT","ELITE","TOURN"]]:
+        for i in [["OX","PMX","UPMX"],["NNH","TSP","RPT","NNHJ","RPJ"],["MS1","MS2","EM","RM","SM","OPT2","JLS","JEM"],["POB","CXPB","MUTPB","IT","ELITE","TOURN"]]:
             print("\t",i)
         exit(0)
 
@@ -139,7 +137,7 @@ if subtour != None and (subtour<0 or subtour >3):
 
 size = size.capitalize()
 
-parameters_value = {"OX": P_OX, "PMX": P_PMX, "UPMX": P_UPMX, "XNULL": P_XNULL,  #Cruzamiento
+parameters_value = {"OX": P_OX, "PMX": P_PMX, "UPMX": P_UPMX,  #Cruzamiento
                     "NNH": P_NNH, "TSP": P_TSP, "RPT": P_RPT, "NNHJ": P_NNHJ, "RPJ": P_RPJ,  #Población inicial
                     "MS1": MS1, "MS2": MS2, "EM": P_EM, "RM": P_RM, "SM": P_SM, "OPT2": P_2OPT, "JLS": P_JLS,"JEM":P_JEM, #Mutación
                     "POB":POBLACION , "CXPB":CXPB, "MUTPB":MUTPB, "IT": IT , "ELITE": ELITE, "TOURN":TOURN} #Overall 
@@ -200,7 +198,7 @@ else:
             print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
             for i in instancias:
                 for j in range(10):
-                    launcher1(j,"secuencial",i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+                    launcher1(j,"secuencial",i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX  , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
         else:
             print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
             for i in instancias:
@@ -216,7 +214,7 @@ else:
                     elif i<=50: _batch = 2
                     elif i<=75: _batch = 3
                     else: _batch = 4
-                    launcher2(j,"paralelo",size,_batch,i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , XNULL = P_XNULL , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
+                    launcher2(j,"paralelo",size,_batch,i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
         else:
             print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
             for i in instancias:

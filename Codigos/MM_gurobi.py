@@ -9,8 +9,8 @@ import tsplib95
 import lkh
 import sys
 
-#path = "Codigos/"
-path=""
+path = "Codigos/"
+#path=""
 
 def transformar_txt(size,batch,instancia,ruta,n):
     archivo = open(ruta,"r")
@@ -367,7 +367,7 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             objective = float("inf")
             if modelo.Status == GRB.OPTIMAL or modelo.SolCount > 0:
                 objective = modelo.getObjective().getValue()
-                lower = modelo.getObjective().getValue()
+                lower = modelo.ObjBoundC
                 #print("Status", modelo.Status, GRB.OPTIMAL)
                 gap = round((objective-lower)/lower*100,4)
                 lower = round(lower,4)
