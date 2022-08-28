@@ -25,7 +25,8 @@ import lkh
 
 
 #path = "Codigos/"
-path=""
+path="../"
+#path = ""
 flagRutas = False
 ciudad_gurobi = []
 #os.system("clear")
@@ -200,8 +201,6 @@ def cruzamiento(ind1,ind2):
         PMX(ind1,ind2)
     elif value<P_OX+P_PMX+P_UMPX:
         UMPX(ind1,ind2)
-    # else:
-    #     pass
 
 def parametersexcel(excel):
 
@@ -341,27 +340,43 @@ def transformar_txt1(ruta,n):
     lineas[-1][0] = lineas[-1][0].replace(","," ")
     lineas[-1][0] = lineas[-1][0][:-1] +" "+str(10000000)
     
-    archivo = open(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
-    archivo.write("NAME: prueba"+str(n+1)+"\n")
-    archivo.write("TYPE: TSP\n")
-    archivo.write(f"COMMENT: {n+1} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
-    archivo.write(f"DIMENSION: {n+1}\n")
-    archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+    #archivo = open(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
+    # archivo.write("NAME: prueba"+str(n+1)+"\n")
+    # archivo.write("TYPE: TSP\n")
+    # archivo.write(f"COMMENT: {n+1} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
+    # archivo.write(f"DIMENSION: {n+1}\n")
+    # archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+    # for i in lineas:
+    #     archivo.write(i[0]+"\n")
+    #archivo.close()
+    string_problem  = "NAME: prueba"+str(n+1)+"\n"
+    string_problem += "TYPE: TSP\n"
+    string_problem += f"COMMENT: {n+1} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n"
+    string_problem += f"DIMENSION: {n+1}\n"
+    string_problem += f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n"
     for i in lineas:
-        archivo.write(i[0]+"\n")
-    archivo.close()
+        string_problem += i[0]+"\n"
+    return string_problem
 
 def transformar_txt2(ruta):
     datos = pd.read_excel(ruta,sheet_name="TT",index_col=0)
     n = len(datos[0])
-    archivo = open(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
-    archivo.write("NAME: tsplib"+str(n)+"\n")
-    archivo.write("TYPE: TSP\n")
-    archivo.write(f"COMMENT: {n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
-    archivo.write(f"DIMENSION: {n}\n")
-    archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
-    archivo.write(datos.replace(0,10000000).to_csv(header=None,index=False).replace(","," "))
-    archivo.close()
+    # archivo = open(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt","w")
+    # archivo.write("NAME: tsplib"+str(n)+"\n")
+    # archivo.write("TYPE: TSP\n")
+    # archivo.write(f"COMMENT: {n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
+    # archivo.write(f"DIMENSION: {n}\n")
+    # archivo.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+    # archivo.write(datos.replace(0,10000000).to_csv(header=None,index=False).replace(","," "))
+    # archivo.close()
+
+    string_problem  = "NAME: prueba"+str(n)+"\n"
+    string_problem += "TYPE: TSP\n"
+    string_problem += f"COMMENT: {n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n"
+    string_problem += f"DIMENSION: {n}\n"
+    string_problem += f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n"
+    string_problem += datos.replace(0,10000000).to_csv(header=None,index=False).replace(","," ")
+    return string_problem
 
 def costo_ciudad(ciudad,n):
     suma_ac = [distancia(0, ciudad[0])]
@@ -378,21 +393,18 @@ def costo_ciudad(ciudad,n):
 def solve_lkh(n):
     if isinstance(instancia,int):
         ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
-        transformar_txt1(ruta_instancia,n)
-        problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
+        string_problem = transformar_txt1(ruta_instancia,n)
+        problem = tsplib95.parse(string_problem)
     else:
         ruta_instancia = path+"Data/instancias_paper/"+instancia+".xlsx"
-        transformar_txt2(ruta_instancia)
-        problem = tsplib95.load(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt")
+        string_problem = transformar_txt2(ruta_instancia)
+        problem = tsplib95.parse(string_problem)
 
     #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
     solver_path = path+'LKH-3.0.7/LKH'
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad if i != 1]
-    if isinstance(instancia,int):
-        os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+"_"+str(semilla)+".txt")
-    else:
-        os.remove(path+size+"_"+str(instancia)+"_"+str(semilla)+".txt")
+    del string_problem
     return ciudad
 
 def generarRuta(n):
@@ -1110,7 +1122,6 @@ argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 multi = False
 mbool = True
-
 
 for i in range(len(opts)):
     if opts[i][0][1:] == "multi":  multi  = (opts[i][1])
