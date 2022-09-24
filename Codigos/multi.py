@@ -35,36 +35,36 @@ alg = "ag"
 subtour = None
 
 #Cruzamiento
-P_OX      = 0.5
-P_PMX     = 0.25
-P_UPMX    = 0.25
+P_OX      = 0.429400386847195 #0.5
+P_PMX     = 0.362669245647969  #0.25
+P_UPMX    = 0.207930367504836 #0.25
 
 #Tour
-P_NNH     = 0.5
-P_TSP     = 0.4
-P_RPT     = 0.1
+P_NNH     = 0.112 #0.5
+P_TSP     = 0.652 #0.4
+P_RPT     = 0.64 #0.1
 
 #job
-P_NNHJ    = 0.7
-P_RPJ     = 0.3
+P_NNHJ    = 0.503 #0.7
+P_RPJ     = 0.538 #0.3
 
 #Mutacion
-MS1       = 0.5
-MS2       = 0.5
-P_EM      = 0.25 #EM
-P_RM      = 0.25 #RM
-P_SM      = 0.25 #SM
-P_2OPT    = 0.25 
-P_JLS     = 0.3
-P_JEM     = 0.7 #Exchange mutation job
+MS1       = 0.121 #0.5
+MS2       = 0.883 #0.5
+P_EM      = 0.338612779901693 #0.25 #EM
+P_RM      = 0.252867285636264 #0.25 #RM
+P_SM      = 0.395412342981977 #0.25 #SM
+P_2OPT    = 0.0131075914800655 #0.25 
+P_JLS     = 0.914 #0.3
+P_JEM     = 0.086 #0.7 #Exchange mutation job
 
 #Overall
-POBLACION = 50
-CXPB      = 0.9
-MUTPB     = 0.2
-IT        = 500
-ELITE     = 0.1
-TOURN     = 4
+POBLACION = 100 #50
+CXPB      = 0.327 #0.9
+MUTPB     = 0.717 #0.2
+IT        = 500 #500
+ELITE     = 0.147 #0.1
+TOURN     = 2 #4
 
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 argv = sys.argv[1:]

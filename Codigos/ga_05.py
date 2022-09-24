@@ -25,8 +25,8 @@ import lkh
 
 
 #path = "Codigos/"
-path="../"
-#path = ""
+#path="../"
+path = ""
 flagRutas = False
 ciudad_gurobi = []
 #os.system("clear")
@@ -207,6 +207,9 @@ def parametersexcel(excel):
     ruta = path+"Data/instancias_paper/"+excel+".xlsx"
     TT = pd.read_excel(ruta,sheet_name="TT",index_col=0)
     JT = pd.read_excel(ruta,sheet_name="JT",index_col=0)
+    JT.to_csv(f"Data/Tsplib_problems/JT_{excel}.csv",index=False,header=False)
+    TT.replace(0,"").to_csv(f"Data/Tsplib_problems/TT_{excel}.csv",index=False,header=False)
+    exit(0)
     #coord = pd.read_excel(excel,sheet_name = "coord",index_col=0,header=0)
     #coord_x = coord["coord_x"]
     #coord_y = coord["coord_y"]
@@ -268,6 +271,7 @@ def costoTotal(ciudad2):
     #ciudad2 = [[3, 11, 23, 4, 20, 7, 6, 5, 15, 10, 2, 16, 9, 13, 19, 1, 14, 18, 21, 17, 22, 8, 12], [16, 4, 23, 10, 2, 12, 17, 21, 20, 1, 5, 11, 19, 7, 22, 9, 18, 6, 13, 3, 14, 8, 15]]
     #ciudad2 = [[43, 40, 33, 22, 24, 2, 18, 3, 29, 37, 19, 34, 41, 38, 39, 36, 1, 44, 42, 46, 17, 45, 27, 6, 28, 12, 47, 15, 10, 35, 5, 25, 14, 23, 9, 11, 30, 4, 32, 7, 21, 8, 13, 20, 31, 26, 16], [45, 36, 38, 20, 24, 40, 12, 27, 32, 7, 19, 14, 4, 3, 22, 1, 28, 13, 47, 43, 16, 9, 5, 11, 18, 23, 35, 10, 39, 29, 33, 46, 15, 21, 17, 25, 6, 31, 44, 34, 26, 37, 8, 42, 30, 41, 2]]
     #ciudad2= [[1,2,4,8,6,12,21,39,36,37,35,32,38,33,25,19,26,29,24,18,16,7,3,13,22,30,27,34,31,28,20,17,15,9,10,5,11,14,23,40],[22,40,20,33,6,5,24,25,17,16,36,11,27,14,3,34,21,9,12,35,4,18,28,7,19,38,13,39,32,15,2,26,1,10,30,37,31,8,29,23]]
+    #ciudad2= [[2, 6, 5, 11, 13, 10, 9, 8, 15, 27, 32, 23, 28, 30, 25, 29, 22, 16, 7, 3, 12, 17, 18, 20, 26, 19, 21, 14, 4, 1, 24, 33, 31, 34, 43, 42, 36, 35, 38, 37, 41, 39, 40],[8, 38, 12, 42, 35, 41, 23, 20, 29, 4, 31, 37, 34, 2, 24, 6, 3, 30, 10, 7, 17, 5, 13, 11, 26, 9, 14, 1, 19, 15, 18, 36, 32, 16, 43, 27, 39, 21, 28, 22, 40, 25, 33]]
     
     ciudad = ciudad2[0]
     trabajo = ciudad2[1]
@@ -1083,45 +1087,45 @@ def GA(ciudad,comparar,plot):
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = "gr17"
+instancia = "eil101"
 size = "tsplib" if instancia in tsplib else "Small"
 
 #Cruzamiento
-P_OX      = 0.5
-P_PMX     = 0.25
-P_UMPX    = 0.25
+P_OX      = 0.429400386847195 #0.5 #12
+P_PMX     = 0.362669245647969 #0.25 #20
+P_UMPX    = 0.207930367504836  #0.25 #68
 
-#Tour
-P_NNH     = 0.5
-P_TSP     = 0.4
-P_RPT     = 0.1
+#Tour       
+P_NNH     = 0.112 #0.5 
+P_TSP     = 0.652 #0.4
+P_RPT     = 0.64 #0.1
 
-#job
-P_NNHJ    = 0.7
-P_RPJ     = 0.3
+#job        
+P_NNHJ    = 0.503 #0.7
+P_RPJ     = 0.538 #0.3
 
-#Mutacion
-MS1       = 0.5
-MS2       = 0.5
-P_EM      = 0.25 
-P_RM      = 0.25 
-P_SM      = 0.25 
-P_2OPT    = 0.25 
-P_JLS     = 0.3
-P_JEM     = 0.7 #Exchange mutation job
+#Mutacion   
+MS1       = 0.121  #0.5
+MS2       = 0.883  #0.5
+P_EM      = 0.338612779901693  #0.25 
+P_RM      = 0.252867285636264 #0.25 
+P_SM      = 0.395412342981977 #0.25 
+P_2OPT    = 0.0131075914800655 #0.25 
+P_JLS     = 0.914 #0.3
+P_JEM     = 0.086 #0.7 #Exchange mutation job, Complemento de JLS
 
-#Overall
-POBLACION = 50
-CXPB      = 0.9
-MUTPB     = 0.2
-IT        = 500
-ELITE     = 0.1
-TOURN     = 4
+#Overall    
+POBLACION = 100 #50
+CXPB      = 0.327  #0.9
+MUTPB     = 0.717  #0.2
+IT        = 500 #500
+ELITE     = 0.147 #0.1
+TOURN     = 2 #4
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 multi = False
-mbool = True
+mbool = False
 
 for i in range(len(opts)):
     if opts[i][0][1:] == "multi":  multi  = (opts[i][1])
@@ -1168,8 +1172,8 @@ if isinstance(instancia, int):
     else: batch = 4
 
 if multi ==False:
-    print("Instancia :",instancia)
-    print("SEED: ",semilla)
+    print("Instancia :",instancia,size)
+    print("Seed: ",semilla)
 
 if instancia not in tsplib: #Si es que es instancia de prueba
     random.seed(semilla)

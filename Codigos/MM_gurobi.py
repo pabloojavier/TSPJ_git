@@ -166,6 +166,18 @@ def parameterscsv():
     job_time = {(i,j): JT[i][j] for i in nodes for j in nodes}
     return nodes,arch,travel_time,job_time
 
+def ordenar_solucion(lista,n):
+    actual = 0
+    _solucion = []
+    while len(_solucion) < n+1:
+        _solucion.append(actual)
+        for i in lista:
+            if i[0]==actual and i[1] not in _solucion:
+                siguiente = i[1]
+                actual = siguiente
+                break
+    return _solucion
+
 def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     """
     Tipo: tsplib/Small/Medium/Large\n
@@ -383,6 +395,26 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             #         lower = round(lower,4)
             #         objective = round(objective,4)
 
+            if print_solucion:
+                solucion = []
+                for i in x:
+                    if x[i].X>0:
+                        solucion.append(i)
+                solucion = ordenar_solucion(solucion,len(ciudades))[1:-1]
+
+                solucion_trabajos = {}
+                for i in z:
+                    if z[i].X>0:
+                        #print(i[0],":",i[1])
+                        solucion_trabajos[i[0]]=i[1]
+                #print(solucion_trabajos)
+
+                trabajos = []
+                for i in solucion:
+                    trabajos.append(solucion_trabajos[i])
+
+                print(f"[{solucion},{trabajos}]")
+
             time = round(modelo.Runtime,4)
             # instancia, bks, lower, gap, time
             print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}".format(instancia,objective,lower,gap,time,dict_status[modelo.Status],modelo.SolCount))
@@ -390,12 +422,13 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
-tipo      = "Large"
+tipo      = "Small"
 instancia = 1
 t_sub     = 1
 sol_in    = True
-output    = False
+output    = True
 sumar_m   = 0
+print_solucion = False
 
 
 
