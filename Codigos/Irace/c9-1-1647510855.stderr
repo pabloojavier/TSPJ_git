@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 1177, in <module>
+    m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial,t_poblacion = GA(ciudad,mbool,False)
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 1021, in GA
+    toolbox.mutate(mutant[0],mutant[1])
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 805, in mutSet
+    DosOpt(ciudad)
+  File "/Users/pablogutierrezaguirre/Desktop/TSPJ_git/Codigos/Irace/./ga.py", line 609, in DosOpt
+    if nuevoCosto < actual:
+KeyboardInterrupt
