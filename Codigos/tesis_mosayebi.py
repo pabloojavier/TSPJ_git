@@ -521,7 +521,7 @@ def main():
     print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}".format("Sample","Gr","SS","Mo","TL","Cmax","Time","2opt","min JT","FJS","BNS"))
     print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}".format("Sample","Gr","SS","Mo","TL","Cmax","Time","2opt","min JT","FJS","BNS"),file = log)
     
-    modelos_imprimir = ["III"] #["I","II","III","IV"]
+    modelos_imprimir = ["I","II","III","IV"] #["I","II","III","IV"]
     instancias_tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
     for group in ["Tsplib","Small","Medium","Large"]: #["Tsplib","Small","Medium","Large"]:
         if group == "Tsplib":
