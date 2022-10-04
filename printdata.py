@@ -232,6 +232,7 @@ def agVsMosayebiV2_SINGAP(tiempo,min,avg,tipo):
             df.loc[i] = [instancias[i],gams[i],I[i],II[i],III[i],IV[i],min[i],avg[i],barras[i],tI[i],tII[i],tIII[i],tIV[i],tiempo[i]]
 
         print(tabulate(df, headers='keys', tablefmt='psql',showindex=False))
+        #print(df)
 
 def agVsMosayebiV2_CMAX(tiempo,min,avg,tipo):
     instancias = ["","gr17-J","gr21-J","gr24-J","fri26-J","bays29-J","gr48-J","eil51-J","berlin52-J","eil76-J","eil101-J","promedio"]
@@ -340,10 +341,11 @@ def agVsMosayebiV2_stats(tiempo,min,avg,mejor_inicial,avg_mejor_inicial,iteracio
                 pass
         print(tabulate(df, headers='keys', tablefmt='psql',showindex=False))
 
-def instancia_prueba_stats(ruta):
+def instancias_prueba_stats(ruta):
     #archivo = open("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/pruebas/"+size+".txt","r")
     archivo = open(ruta,"r")
     lineas=[linea.split() for linea in archivo]
+    lineas = lineas[:-1]
     instancias = list(map(lambda x:str(x),sorted(list(set([int(lineas[i][3]) for i in range(len(lineas))])))))
 
 
@@ -356,19 +358,41 @@ def instancia_prueba_stats(ruta):
     t_pob = [promedio([float(lineas[i][10]) for i in range(len(lineas)) if lineas[i][3]==j]) for j in instancias]
 
 
-    print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format("ins","min","avg","time","mejor_in","avgmejor_in","it_avg","t_pob"))
+    #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format("ins","min","avg","time","mejor_in","avgmejor_in","it_avg","t_pob"))
+    nombre = ruta.split("/")[-1]
+    archivo = open("output/Exp2_resumen/"+nombre,"w")
     for i in range(len(instancias)):
-        print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]))
+        #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
+        print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
     
+def instancias_tsplib_stats(ruta):
+    archivo = open(ruta,"r")
+    lineas=[linea.split() for linea in archivo]
+    instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 
-ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/3.txt"
+    minimos = [min( [float(lineas[i][2]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    avg = [promedio([float(lineas[i][3]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    tiempos = [promedio([float(lineas[i][4]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    mejor_i =  [min( [float(lineas[i][5]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    avg_mejor_i = [promedio([float(lineas[i][6]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    iteracion = [promedio([float(lineas[i][7]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    t_pob = [promedio([float(lineas[i][8]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+    nombre = ruta.split("/")[-1]
+    archivo = open("output/Exp2_resumen/"+nombre,"w")
+    for i in range(len(instancias)):
+        #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
+        print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
+
+ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/ga_tsplib_irace0.txt"
 
 #Para instancias TSPLIB
-#minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
-#agVsMosayebiV2_stats(tiempos,minimos,avgs,mejor_inicial,avg_mejor_inicial,iteracion,t_pob,"La1tex")
-# agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
+# minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
+# agVsMosayebiV2_stats(tiempos,minimos,avgs,mejor_inicial,avg_mejor_inicial,iteracion,t_pob,"La1tex")
+#agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
-instancia_prueba_stats("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/large/cluster.txt")
+for i in ["tsplib"]:#"tsplib"
+    for j in range(1,7):
+        instancias_tsplib_stats(f"/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/Exp2/ga_{i}_AG{j}.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")
