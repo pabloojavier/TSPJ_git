@@ -271,7 +271,7 @@ def costoTotal(ciudad2):
     #ciudad2 = [[43, 40, 33, 22, 24, 2, 18, 3, 29, 37, 19, 34, 41, 38, 39, 36, 1, 44, 42, 46, 17, 45, 27, 6, 28, 12, 47, 15, 10, 35, 5, 25, 14, 23, 9, 11, 30, 4, 32, 7, 21, 8, 13, 20, 31, 26, 16], [45, 36, 38, 20, 24, 40, 12, 27, 32, 7, 19, 14, 4, 3, 22, 1, 28, 13, 47, 43, 16, 9, 5, 11, 18, 23, 35, 10, 39, 29, 33, 46, 15, 21, 17, 25, 6, 31, 44, 34, 26, 37, 8, 42, 30, 41, 2]]
     #ciudad2= [[1,2,4,8,6,12,21,39,36,37,35,32,38,33,25,19,26,29,24,18,16,7,3,13,22,30,27,34,31,28,20,17,15,9,10,5,11,14,23,40],[22,40,20,33,6,5,24,25,17,16,36,11,27,14,3,34,21,9,12,35,4,18,28,7,19,38,13,39,32,15,2,26,1,10,30,37,31,8,29,23]]
     #ciudad2= [[2, 6, 5, 11, 13, 10, 9, 8, 15, 27, 32, 23, 28, 30, 25, 29, 22, 16, 7, 3, 12, 17, 18, 20, 26, 19, 21, 14, 4, 1, 24, 33, 31, 34, 43, 42, 36, 35, 38, 37, 41, 39, 40],[8, 38, 12, 42, 35, 41, 23, 20, 29, 4, 31, 37, 34, 2, 24, 6, 3, 30, 10, 7, 17, 5, 13, 11, 26, 9, 14, 1, 19, 15, 18, 36, 32, 16, 43, 27, 39, 21, 28, 22, 40, 25, 33]]
-    ciudad2 = [[1,2,3,4],[3,4,1,2]]
+    #ciudad2 = [[1,2,3,4],[3,4,1,2]]
 
     ciudad = ciudad2[0]
     trabajo = ciudad2[1]
@@ -301,8 +301,7 @@ def costoTotal(ciudad2):
     
     #print("cmas: ",cmax)
     # print("ac",suma_ac)
-    print(suma_ac,cmax)
-    exit(0)
+
 
     return cmax,
 
@@ -1090,8 +1089,8 @@ def GA(ciudad,comparar,plot):
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = "gr17"
-size = "tsplib" if instancia in tsplib else "Small"
+instancia = 1#"eil101"
+size = "tsplib" if instancia in tsplib else "Medium"
 
 #Tour       
 P_RPT     = 0.236 #0.1
@@ -1197,8 +1196,8 @@ if multi == False:
     print("Seed: ",semilla)
 
     
-#ciudad,arch,TT,JT = parameters(size,batch,instancia) if instancia not in tsplib  else parametersexcel(instancia)
-ciudad,arch,TT,JT = parameterscsvpaper()
+ciudad,arch,TT,JT = parameters(size,batch,instancia) if instancia not in tsplib  else parametersexcel(instancia)
+#ciudad,arch,TT,JT = parameterscsvpaper()
 
 random.seed(semilla)
 m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial,t_poblacion = GA(ciudad,comparar,plot)
