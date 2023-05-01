@@ -8,6 +8,8 @@ import os
 import tsplib95
 import lkh
 import sys
+import subprocess
+
 
 path = "Codigos/"
 #path=""
@@ -34,17 +36,59 @@ def transformar_txt(size,batch,instancia,ruta,n):
         archivo.write(i[0]+"\n")
     archivo.close()
 
+def costoTotal(ciudad2):
+
+    ciudad = ciudad2[0]
+    trabajo = ciudad2[1]
+    n = len(ciudad)
+    suma_ac = [distancia(0, ciudad[0])]
+    suma = suma_ac[-1]
+    maxtime = suma_ac[-1]+jobTime(trabajo[0],ciudad[0]) 
+    cmax = 0
+    i = 0
+    while i < n -1:
+        suma += distancia(ciudad[i], ciudad[i + 1])
+        suma_ac.append(suma)
+        maxtime = suma_ac[-1] + jobTime(trabajo[i+1],ciudad[i+1])  
+        #print(maxtime)
+        #print("costo: ",suma_ac[-1],maxtime)
+        #print(suma_ac,maxtime)
+        if maxtime > cmax:
+            cmax = maxtime
+            #print("COSTO TOTAL: ",ciudad,ciudad[i+1])
+        i += 1
+    suma += distancia(ciudad[-1], 0)
+    suma_ac.append(suma)
+    if suma_ac[-1]>cmax:
+        cmax = suma_ac[-1]
+        #print("costo: ",suma_ac[-1],maxtime)
+        #print("COSTO TOTAL: ",ciudad[-1])
+    
+    #print("cmas: ",cmax)
+    # print("ac",suma_ac)
+
+
+    return cmax,
+
+
 def solve_lkh(size,batch,instancia,n):
-    ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
     if output == True:
         print("Creando archivo .txt ...")
+    
+    if size != "tsplib":
+        ruta_instancia = path+"Data/"+str(size)+"_problems/Batch_0"+str(batch)+"/TSPJ_"+str(instancia)+size[0]+"_cost_table_by_coordinates.csv"
+    else:
+        ruta_instancia = path+f"Data/Tsplib_problems/TT_{instancia}.csv"
+
     transformar_txt(size,batch,instancia,ruta_instancia,n)
-    #problem_str = requests.get('http://vrp.atd-lab.inf.puc-rio.br/media/com_vrp/instances/A/A-n32-k5.vrp').text
+    
     problem = tsplib95.load(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+    os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
+
     solver_path = path+'LKH-3.0.7/LKH'
+
     ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
     ciudad = [i-1 for i in ciudad]
-    os.remove(path+size+"_"+str(batch)+"_"+str(instancia)+".txt")
     if output==True:
         print("Archivo .txt eliminado")
     return ciudad
@@ -178,6 +222,43 @@ def ordenar_solucion(lista,n):
                 break
     return _solucion
 
+def obtener_cortes():
+    archivo = open(f"{path}logfile_{instancia}.txt","r")
+    lineas = [linea.split("\n") for linea in archivo]
+    archivo.close()
+    os.remove(f"{path}logfile_{instancia}.txt")
+    cortes = {}
+    aux = []
+    flag = 0
+    contador = 0
+    for linea in lineas[::-1]:
+        if "Explored" in linea[0]:
+            flag = 1
+            continue
+        
+        if flag == 1:
+            aux.append(linea)
+            contador +=1
+        
+        if contador > 25:
+            return 0
+
+        if "Cutting planes:" in linea:
+            break
+    
+    del linea
+    aux.pop(0)
+    aux.pop(-1)
+    total = 0
+    for i in range(len(aux)):
+        nombre = aux[i][0].split(":")[0][2:]
+        cantidad = int(aux[i][0].split(":")[1])
+        total += cantidad
+        cortes[nombre] = cantidad
+    del aux
+    return total
+
+
 def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     """
     Tipo: tsplib/Small/Medium/Large\n
@@ -210,7 +291,11 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     global JT
     if tipo_instancia.lower()=="tsplib":
         ciudades,arcos,TT,JT = parametersexcel(instancia)
-    
+        try:
+            tsp_inicial = solve_lkh("tsplib","",instancia,len(ciudades)-1)
+        except:
+            print(instancia)
+            exit(0)
     elif tipo_instancia.lower() == "small":
         ciudades,arcos,TT,JT = parameters("Small",batch,instancia)
         tsp_inicial = solve_lkh("Small",batch,instancia,len(ciudades)-1)
@@ -227,6 +312,16 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
         print("instancia erronea")
         exit(0)
 
+
+    arcos_inicial = ordenar_arcos(tsp_inicial)
+    trabajos = heuristica_trabajos(tsp_inicial[1:],JT)
+    arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
+
+    costo_inicial = costoTotal([tsp_inicial[1:],trabajos])[0]
+
+    menor_arco_depot = min(TT[(0,i)] for i in range(1,len(ciudades)))
+    
+
     M = 0
     for i in range(len(ciudades)):
         maximo_t = 0
@@ -241,6 +336,18 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     M += sumarM
     #print("M",M)
 
+    #####Calculo de nueva M
+    M2 = np.zeros((len(ciudades),len(ciudades)))
+    for j in range(1,len(ciudades)):
+        M2[0,j] = TT[(0,j)]
+    for i in range(len(ciudades)):
+        for j in range(len(ciudades)):
+            if i != j:
+                M2[i,j] = costo_inicial+TT[(i,j)]
+    
+
+
+
     dist = {(i, j):distancia(i,j) for i, j in arcos}
     trabajos = ciudades.copy()
     nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
@@ -251,9 +358,10 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
 
 
     with gp.Env(empty=True) as env:
-        env.setParam('OutputFlag', 1 if output else 0)
+        env.setParam('LogToConsole', 1 if output else 0)
         env.start()
         with gp.Model(env=env) as modelo:
+            
             Cmax = modelo.addVar(name="Cmax")
 
             x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
@@ -270,13 +378,24 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
 
             TS = modelo.addVars(ciudades,name="TS")
 
-
-
             #Crear función objetivo
             modelo.setObjective(Cmax, GRB.MINIMIZE)
 
             #Esta restricción sin jt_min es equivalente al segundo conjunto de restricciones
             modelo.addConstr(Cmax >= jt_min + quicksum(x[(i,j)]*TT[(i,j)] for i in ciudades for j in ciudades[1:] if i!=j))
+
+            #modelo.addConstr(Cmax <= 3500)
+
+            # como es simétrico copiamos sus opuestos
+            # for i, j in x.keys():
+            #     x[j, i] = x[i, j]
+
+            # Restricción 2-degree
+            #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
+
+            for i in range(len(ciudades)):
+                modelo.addConstr(sum(x[i,j] for j in range(len(ciudades)) if i != j) == 2)    
+
 
             #Restricciones
             for i in ciudades[1:len(ciudades)]:
@@ -296,6 +415,8 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
 
             for j in ciudades: #13
                 modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
+
+
 
             #Restricción GG
             if subtour == 1:
@@ -325,50 +446,58 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             for i in ciudades: #16
                 for j in ciudades[1:len(ciudades)]:
                     if i!=j:
-                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M <= TS[j])
+                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M2[i,j] <= TS[j])
 
+            #Cota superior tiempo de inicio
+            for i in ciudades:
+                modelo.addConstr(TS[i]<=costo_inicial)
 
-            
-            # Restricción 2-degree
-            #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
+            #Cota inferior tiempo de inicio
+            for i in range(1,len(ciudades)):
+                modelo.addConstr(TS[i]>=menor_arco_depot) 
+
+            #Cota superior de solucion inicial (lkh+NNJ)
+            modelo.addConstr(Cmax<=costo_inicial)
+
 
             # Parámetros
             #modelo.Params.LazyConstraints = 1
             modelo.Params.Threads = 1
             modelo.setParam('TimeLimit', 1500)
-            if sol_inicial == True and tipo_instancia != "tsplib":
+            #modelo.setParam("NodeLimit",1)
+            modelo.params.LogFile = f"{path}logfile_{instancia}.txt"
+            if sol_inicial == True: #and tipo_instancia != "tsplib":
                 modelo.NumStart = 1
                 modelo.update()
 
                 # imprimir modelo
 
                 # Solucion inicial
-                if tipo_instancia != "tsplib":
-                    arcos_inicial = ordenar_arcos(tsp_inicial)
-                    trabajos = heuristica_trabajos(tsp_inicial[1:],JT)
-                    arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
-                    for s in range(modelo.NumStart):
-                        # set StartNumber
-                        modelo.Params.StartNumber = s
-                        # now set MIP start values using the Start attribute, e.g.:
-                        for var in modelo.getVars(): #
-                            if var.VarName[0] == "x":
-                                nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
-                                if nombre_arco in arcos_inicial:
-                                    var.Start = 1
-                                # else:
-                                #     var.Start = 0
 
-                            elif var.VarName[0] == "z":
-                                nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
-                                if nombre_arco in arcos_inicial_trabjos:
-                                    var.Start = 1
-                                # else:
-                                #     var.Start = 0
-                            
-                            elif var.VarName == "Cmax":
-                                #var.Start = <valor>
-                                pass
+                for s in range(modelo.NumStart):
+                    # set StartNumber
+                    modelo.Params.StartNumber = s
+                    # now set MIP start values using the Start attribute, e.g.:
+                    for var in modelo.getVars(): #
+                        if var.VarName[0] == "x":
+                            nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                            if nombre_arco in arcos_inicial:
+                                var.Start = 1
+                            # else:
+                            #     var.Start = 0
+
+                        elif var.VarName[0] == "z":
+                            nombre_arco = tuple(var.varName.split("[")[1][:-1].split(","))
+                            if nombre_arco in arcos_inicial_trabjos:
+                                var.Start = 1
+                            # else:
+                            #     var.Start = 0
+                        
+                        elif var.VarName == "Cmax":
+                            #var.Start = <valor>
+                            pass
+
+
 
             modelo.optimize()
             dict_status = {1: 'LOADED', 2: 'OPTIMAL', 3: 'INFEASIBLE', 4: 'INF_OR_UNBD', 5: 'UNBOUNDED', 6: 'CUTOFF', 7: 'ITERATION_LIMIT', 8: 'NODE_LIMIT', 9: 'TIME_LIMIT', 10: 'SOLUTION_LIMIT', 11: 'INTERRUPTED', 12: 'NUMERIC', 13: 'SUBOPTIMAL', 14: 'INPROGRESS', 15: 'USER_OBJ_LIMIT'}
@@ -416,14 +545,17 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
                 print(f"[{solucion},{trabajos}]")
 
             time = round(modelo.Runtime,4)
-            # instancia, bks, lower, gap, time
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}".format(instancia,objective,lower,gap,time,dict_status[modelo.Status],modelo.SolCount))
-
+            # instancia, bks, lower, gap, time,nodos explorados
+            # obtener lower bound en root node o nodo 0
+            
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancia,round(objective,2),round(lower,1),round(gap,4),time,dict_status[modelo.Status],modelo.SolCount,modelo.NodeCount),end=" ")
+            print(obtener_cortes())
+            
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
-tipo      = "Small"
-instancia = 1
+tipo      = "tsplib"
+instancia = "gr17"
 t_sub     = 1
 sol_in    = True
 output    = True

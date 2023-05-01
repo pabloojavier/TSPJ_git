@@ -11,13 +11,13 @@ import sys
 
 inicio = time.time()
 def launcher1(semilla,paralelo,_instancia,**kwargs):
-    ejecutar = f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -multi True "
+    ejecutar = f"/usr/local/bin/python3.9 ga_05.py -seed {semilla} -i {_instancia} -multi True "
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
 
 def launcher2(semilla,paralelo,_size,_batch,_instancia ,**kwargs):
-    ejecutar = f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
+    ejecutar = f"/usr/local/bin/python3.9 ga_05.py -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
@@ -84,7 +84,7 @@ for i in range(len(opts)):
     elif opts[i][0][1:] == "subtour": subtour = int(opts[i][1])
     elif opts[i][0][1:] == "OX"   : P_OX    =  float(opts[i][1])
     elif opts[i][0][1:] == "PMX"  : P_PMX   =  float(opts[i][1])  
-    elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])    
+    elif opts[i][0][1:] == "UPMX" : P_UMPX  =  float(opts[i][1])    
 
     elif opts[i][0][1:] == "NNH"  : P_NNH   =  float(opts[i][1]) 
     elif opts[i][0][1:] == "TSP"  : P_TSP   =  float(opts[i][1]) 
@@ -164,8 +164,8 @@ if paralelo.lower() == "paralelo":
                     pool.apply_async(launcher2, args=(_seed,"paralelo",size,_batch,_instancia),kwds=parameters_value)
             
             else:
-                print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
-                instancias = [i for i in range(1,101) ]
+                print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{}".format("ins","obj","lb","gap","time","status","solcount","nodes","cuts"))
+                instancias = [i for i in range(1,10) ]
                 for instancia in instancias:
                     #print("a")
                     pool.apply_async(launcher3, args=(size,instancia,subtour,True,False,0))
@@ -181,7 +181,7 @@ if paralelo.lower() == "paralelo":
                     _instancia,_seed = _product
                     pool.apply_async(launcher1, args=(_seed,"paralelo",_instancia) , kwds=parameters_value)
             else:
-                print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
+                print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{}".format("ins","obj","lb","gap","time","status","solcount","nodes","cuts"))
                 for instancia in instancias:
                     pool.apply_async(launcher3, args=(size.lower(),instancia,subtour,True,False,0))
                 pool.close()
@@ -200,11 +200,11 @@ else:
                 for j in range(10):
                     launcher1(j,"secuencial",i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX  , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
         else:
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{}".format("ins","obj","lb","gap","time","status","solcount","nodes","cuts"))
             for i in instancias:
                 launcher3(size.lower(),i,subtour,True,False,0)
     else:
-        instancias = [i for i in range(1,101)]
+        instancias = [i for i in range(1,10)]
         #semilla,size,batch,instancia,mejor,poblacion,tiempo,mejor inicial,poblacion inicial,mejor iteracion,tiempo poblacion
         if alg == "ag":
             print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","batch","ins","mejor","pob","time","mejor_i","pob_i","mejor_iter","t_pob"))
@@ -216,7 +216,7 @@ else:
                     else: _batch = 4
                     launcher2(j,"paralelo",size,_batch,i,OX = P_OX , PMX = P_PMX , UPMX = P_UPMX , NNH = P_NNH , TSP = P_TSP , RPT = P_RPT , NNHJ = P_NNHJ , RPJ = P_RPJ , MS1 = MS1 , MS2 = MS2 , EM = P_EM , RM = P_RM , SM = P_SM , OPT2 = P_2OPT , JLS = P_JLS , JEM = P_JEM , POB = POBLACION , CXPB = CXPB , MUTPB = MUTPB , IT = IT , ELITE = ELITE , TOURN = TOURN)
         else:
-            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<20}".format("ins","obj","lb","gap","time","status","solcount"))
+            print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{}".format("ins","obj","lb","gap","time","status","solcount","nodes","cuts"))
             for i in instancias:
                 launcher3(size.lower(),i,subtour,True,False,0)
     #print(time.time()-inicio)
