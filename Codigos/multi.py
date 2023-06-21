@@ -8,27 +8,28 @@ import sys
 
 
 #/usr/local/bin/python3.9 multi.py -p paralelo -t tsplib
+path = "Codigos/"
 
 inicio = time.time()
 def launcher1(semilla,paralelo,_instancia,**kwargs):
-    #ejecutar = f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -multi True "
-    ejecutar = f"./venv/bin/python ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -multi True "
+    ejecutar = f"/usr/local/bin/python3 ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -multi True "
+    #ejecutar = f"./venv/bin/python ga_05.py -paralelo {paralelo} -seed {semilla} -i {_instancia} -multi True "
     
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
 
 def launcher2(semilla,paralelo,_size,_batch,_instancia ,**kwargs):
-    #ejecutar = f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
-    ejecutar = f"./venv/bin/python ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
+    ejecutar = f"/usr/local/bin/python3 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
+    #ejecutar = f"./venv/bin/python ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -multi True "
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
     #os.system(f"/usr/local/bin/python3.9 ga_05.py -paralelo {paralelo} -seed {semilla} -size {_size} -batch {_batch} -i {_instancia} -OX {OX} -PMX {PMX} -UPMX {UPMX} -NNH {NNH} -TSP {TSP} -MS1 {MS1} -MS2 {MS2} -MS11 {MS11} -MS12 {MS12} -MS13 {MS13} -MS14 {MS14} -MS21 {MS21} -POB {POB} -CXPB {CXPB} -MUTPB {MUTPB} -IT {IT} -ELIT {ELITE} -TOURN {TOURN} -multi True")
 
 def launcher3(tipo,instancia,subtour,solin,output,sumarm):
-    #os.system(f"/usr/local/bin/python3.9 MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
-    os.system(f"./venv/bin/python Codigos/MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
+    os.system(f"/usr/local/bin/python3 {path}MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
+    #os.system(f"./venv/bin/python Codigos/MM_gurobi.py -tipo {tipo} -instancia {instancia} -subtour {subtour} -solinicial {solin} -output {output} -sumarM {sumarm}")
 
 #Valores por defecto
 paralelo = "paralelo"

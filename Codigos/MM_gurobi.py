@@ -8,6 +8,8 @@ import tsplib95
 import lkh
 import sys
 import subprocess
+import warnings
+warnings.filterwarnings("ignore")
 
 
 path = "Codigos/"
