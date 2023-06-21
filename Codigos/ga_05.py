@@ -24,9 +24,9 @@ import tsplib95
 import lkh
 
 
-#path = "Codigos/"
+path = "Codigos/"
 #path="../"
-path = ""
+#path = ""
 flagRutas = False
 ciudad_gurobi = []
 #os.system("clear")
@@ -528,7 +528,7 @@ def tsp_gurobi_cortes(n,tiempo=10):
                 x[j, i] = x[i, j]
 
             # Restricción 2-degree
-            #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(n+1))
+            modelo.addConstrs(x.sum(i, '*') == 2 for i in range(n+1))
 
             # Parámetros
             modelo.Params.Threads = 1
@@ -1066,7 +1066,7 @@ def GA(ciudad,comparar,plot):
             df.loc[g] = [log[-1]["gen"], "%.2f"%log[-1]["avg"], "%.2f"%log[-1]["min"],"%.2f"%log[-1]["std"]]
 
     #print(lista_soluciones[-1])
-    #print(top[-1])
+    print(top[-1])
     finTiempo = time.time()
     tiempo = finTiempo - inicioTiempo
     minimo, promedio = log.select("min", "avg")
@@ -1089,8 +1089,8 @@ def GA(ciudad,comparar,plot):
 tsplib = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
 semilla = 1
 batch = 1
-instancia = 1#"eil101"
-size = "tsplib" if instancia in tsplib else "Medium"
+instancia = 1
+size = "tsplib" if instancia in tsplib else "Small"
 
 #Tour       
 P_RPT     = 0.236 #0.1
@@ -1148,7 +1148,7 @@ for i in range(len(opts)):
             instancia = opts[i][1]      
     elif opts[i][0][1:] == "OX"   : P_OX    =  float(opts[i][1])
     elif opts[i][0][1:] == "PMX"  : P_PMX   =  float(opts[i][1])  
-    elif opts[i][0][1:] == "UPMX" : P_UMPX  =  float(opts[i][1])  
+    elif opts[i][0][1:] == "UMPX" : P_UMPX  =  float(opts[i][1])  
 
     elif opts[i][0][1:] == "NNH"  : P_NNH   =  float(opts[i][1]) 
     elif opts[i][0][1:] == "TSP"  : P_TSP   =  float(opts[i][1]) 
@@ -1180,7 +1180,6 @@ for i in range(len(opts)):
             print("\t",i)
         exit(0)
 
-comparar = multi
 if isinstance(instancia, int):
     #batch = (instancia-1)//25+1
     if instancia <=25: batch = 1

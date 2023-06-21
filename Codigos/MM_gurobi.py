@@ -1,4 +1,3 @@
-from pyexpat import model
 import gurobipy as gp
 from gurobipy import *
 import pandas as pd
@@ -13,7 +12,6 @@ import subprocess
 
 path = "Codigos/"
 #path=""
-
 def transformar_txt(size,batch,instancia,ruta,n):
     archivo = open(ruta,"r")
     lineas = [linea.split() for linea in archivo]
@@ -170,8 +168,9 @@ def parameters(size,batch,instancia):
 def subtourelim1(modelo, donde):
     # Callback - para usar cortes lazy de eliminación de subtour Eq DFJ1
     n = N
-    if donde == GRB.Callback.MIPSOL:
-        valoresX = modelo.cbGetSolution(modelo._vars)
+    if donde == GRB.Callback.MIPNODE:
+        #valoresX = modelo.cbGetSolution(modelo._vars)
+        valoresX = model.cbGetNodeRel(model._vars)
         # encontrar ciclo más pequeño
         tour = [i for i in range(n+1)]
         subtour(tour, valoresX,n)
@@ -197,8 +196,8 @@ def subtour(subruta, vals,n):
 
 def parameterscsv():
 
-    TT = pd.read_csv(f"{path}Data/test/TT_paper.csv",index_col= None, header = None)
-    JT = pd.read_csv(f"{path}Data/test/JT_paper.csv",index_col= None, header = None)
+    TT = pd.read_csv(f"{path}Data/test/1_TT_paper.csv",index_col= None, header = None)
+    JT = pd.read_csv(f"{path}Data/test/1_JT_paper.csv",index_col= None, header = None)
 
     #print(JT[2][1])
     #JT[COLUMNA][FILA]
@@ -226,7 +225,7 @@ def obtener_cortes():
     archivo = open(f"{path}logfile_{instancia}.txt","r")
     lineas = [linea.split("\n") for linea in archivo]
     archivo.close()
-    os.remove(f"{path}logfile_{instancia}.txt")
+    #os.remove(f"{path}logfile_{instancia}.txt")
     cortes = {}
     aux = []
     flag = 0
@@ -258,6 +257,90 @@ def obtener_cortes():
     del aux
     return total
 
+def subtour2(vals):
+    # make a list of edges selected in the solution
+    edges = gp.tuplelist((i, j) for i, j in vals.keys()
+                         if vals[i, j] > 0.5)
+    unvisited = list(range(n_ciudades))
+    cycle = range(n_ciudades+1)  # initial length has 1 more city
+    while unvisited:  # true if list is non-empty
+        thiscycle = []
+        neighbors = unvisited
+        while neighbors:
+            current = neighbors[0]
+            thiscycle.append(current)
+            unvisited.remove(current)
+            neighbors = [j for i, j in edges.select(current, '*')
+                         if j in unvisited]
+        if len(cycle) > len(thiscycle):
+            cycle = thiscycle
+    return cycle
+
+def subtourelim2(model, where):
+    # global contador
+    # global restricciones
+    if where == GRB.Callback.MIPNODE:
+        vals = model.cbGetNodeRel(model._vars)
+        #vals = model.cbGetSolution(model._vars)
+        
+        # find the shortest cycle in the selected edge list
+        tour = subtour2(vals)
+        #rutas.append(tour)
+        #arcos.append([tupla for tupla, valor in vals.items() if valor >0.5])
+        #print(len(tour),n_ciudades,[valor for tupla, valor in vals.items() if valor >0])
+        #print("Intenté")
+        #vals_z = model.cbGetSolution(model._varsz)
+        # aux1 = [(i,j) for i,j in vals.items() if j >0]
+        # aux2 = [(i,j) for i,j in vals_z.items() if j >0]
+        # print(aux1)
+        # print(aux2)
+        if len(tour) < n_ciudades:
+            #print("ENTRE1")
+            model.cbLazy(gp.quicksum(model._vars[i, j] for i, j in combinations(tour, 2))<= len(tour)-1)
+            #print("+".join([f"({i},{j})" for i,j in combinations(tour, 2)])+f"<= {len(tour)-1}")
+        #restricciones.append(contador)
+
+contador_callback = 0
+def subtourelim3(modelo, donde):
+    global contador_callback
+    n = n_ciudades
+    if donde == GRB.Callback.MIPNODE:
+        #valoresX = modelo.cbGetSolution(modelo._vars)
+        #depth = modelo.cbGet(GRB.Callback.MIPNODE_NODCNT)
+        valoresX = modelo.cbGetNodeRel(modelo._vars)
+        # encontrar ciclo más pequeño
+        tour = [i for i in range(n+1)]
+        subtour3(tour, valoresX,n)
+        if len(tour) < n:
+            contador_callback +=1 
+            # agregar cortes de elimination de subtour DFJ2
+            tour2 = [i for i in range(n) if i not in tour]
+            modelo.cbLazy(gp.quicksum(modelo._vars[i, j] for i in tour for j in tour2) >= 1)
+            #print(depth)
+
+        valoresZ = modelo.cbGetNodeRel(modelo._varsz)
+        solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 and solucion <1]
+        if len(solucion) >0:
+            solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 ]
+            for i in solucion: print(i)
+            exit(0)
+
+            
+
+def subtour3(subruta, vals,n):
+    # obtener una lista con los arcos parte de la solucións
+    arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
+    noVisitados = list(range(n))
+    while noVisitados: # true if list is non-empty
+        ciclo = []
+        vecinos = noVisitados
+        while vecinos:
+            actual = vecinos[0]
+            ciclo.append(actual)
+            noVisitados.remove(actual)
+            vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
+        if len(subruta) > len(ciclo):
+            subruta[:] = ciclo
 
 def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     """
@@ -294,6 +377,7 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
         try:
             tsp_inicial = solve_lkh("tsplib","",instancia,len(ciudades)-1)
         except:
+
             print(instancia)
             exit(0)
     elif tipo_instancia.lower() == "small":
@@ -309,6 +393,8 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
         tsp_inicial = solve_lkh("Large",batch,instancia,len(ciudades)-1)
     
     else:
+        
+        #ciudades,arcos,TT,JT = parameterscsv()
         print("instancia erronea")
         exit(0)
 
@@ -318,9 +404,8 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     arcos_inicial_trabjos = ordenar_trabajos(tsp_inicial[1:],trabajos)
 
     costo_inicial = costoTotal([tsp_inicial[1:],trabajos])[0]
-
     menor_arco_depot = min(TT[(0,i)] for i in range(1,len(ciudades)))
-    
+
 
     M = 0
     for i in range(len(ciudades)):
@@ -354,14 +439,17 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     jt_aux = np.array(list(JT.values()))
     jt_min = jt_aux[(jt_aux >= 1)].min()
     
+    global n_ciudades
+    n_ciudades = len(ciudades)
 
 
 
     with gp.Env(empty=True) as env:
-        env.setParam('LogToConsole', 1 if output else 0)
+        env.setParam('OutputFlag',1 if output else 0)#1 if output else 0)
+        #env.setParam('LogFile',f"{path}logfile_{instancia}.txt")
+        
         env.start()
         with gp.Model(env=env) as modelo:
-            
             Cmax = modelo.addVar(name="Cmax")
 
             x = modelo.addVars(dist.keys(), vtype=GRB.BINARY, name='x')
@@ -393,9 +481,11 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             # Restricción 2-degree
             #modelo.addConstrs(x.sum(i, '*') == 2 for i in range(len(ciudades)))
 
-            for i in range(len(ciudades)):
-                modelo.addConstr(sum(x[i,j] for j in range(len(ciudades)) if i != j) == 2)    
+            # for i in range(len(ciudades)):
+            #     modelo.addConstr(sum(x[i,j] for j in range(len(ciudades)) if i != j) == 1)    
 
+            modelo.addConstrs(x.sum(i,'*') == 1 for i in ciudades) # Outgoing
+            modelo.addConstrs(x.sum('*', j) == 1 for j in ciudades) # Incoming 
 
             #Restricciones
             for i in ciudades[1:len(ciudades)]:
@@ -410,11 +500,11 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             for i in ciudades[1:len(ciudades)]: 
                 modelo.addConstr(quicksum(z[(i,k)] for k in trabajos if k != 0) == 1)
             
-            for i in ciudades: #12
-                modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
+            # for i in ciudades: #12
+            #     modelo.addConstr(quicksum(x[(i,j)] for j in ciudades if i!=j)==1)
 
-            for j in ciudades: #13
-                modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
+            # for j in ciudades: #13
+            #     modelo.addConstr(quicksum(x[(i,j)] for i in ciudades if i!=j)==1) 
 
 
 
@@ -446,7 +536,7 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             for i in ciudades: #16
                 for j in ciudades[1:len(ciudades)]:
                     if i!=j:
-                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M2[i,j] <= TS[j])
+                        modelo.addConstr(TS[i] + TT[(j,i)] - (1-x[(i,j)])*M <= TS[j])
 
             #Cota superior tiempo de inicio
             for i in ciudades:
@@ -461,11 +551,11 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
 
 
             # Parámetros
-            #modelo.Params.LazyConstraints = 1
+            modelo.Params.LazyConstraints = 1
             modelo.Params.Threads = 1
             modelo.setParam('TimeLimit', 1500)
             #modelo.setParam("NodeLimit",1)
-            modelo.params.LogFile = f"{path}logfile_{instancia}.txt"
+            
             if sol_inicial == True: #and tipo_instancia != "tsplib":
                 modelo.NumStart = 1
                 modelo.update()
@@ -497,9 +587,10 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
                             #var.Start = <valor>
                             pass
 
-
-
-            modelo.optimize()
+            modelo._vars = x
+            modelo._varsz = z
+            #modelo.optimize()
+            modelo.optimize(subtourelim3)
             dict_status = {1: 'LOADED', 2: 'OPTIMAL', 3: 'INFEASIBLE', 4: 'INF_OR_UNBD', 5: 'UNBOUNDED', 6: 'CUTOFF', 7: 'ITERATION_LIMIT', 8: 'NODE_LIMIT', 9: 'TIME_LIMIT', 10: 'SOLUTION_LIMIT', 11: 'INTERRUPTED', 12: 'NUMERIC', 13: 'SUBOPTIMAL', 14: 'INPROGRESS', 15: 'USER_OBJ_LIMIT'}
             #modelo.write("file2.lp")
 
@@ -549,20 +640,20 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             # obtener lower bound en root node o nodo 0
             
             print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancia,round(objective,2),round(lower,1),round(gap,4),time,dict_status[modelo.Status],modelo.SolCount,modelo.NodeCount),end=" ")
-            print(obtener_cortes())
+            #print(modelo.getParamInfo("ZeroHalfCuts"))
+            print(contador_callback)#,"restricciones")
+            #print(obtener_cortes())
             
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 tipo      = "tsplib"
 instancia = "gr17"
-t_sub     = 1
+t_sub     = 0
 sol_in    = True
 output    = True
 sumar_m   = 0
 print_solucion = False
-
-
 
 
 for i in range(len(opts)):

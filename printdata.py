@@ -356,14 +356,14 @@ def instancias_prueba_stats(ruta):
     avg_mejor_i = [promedio([float(lineas[i][8]) for i in range(len(lineas)) if lineas[i][3]==j]) for j in instancias]
     iteracion = [promedio([float(lineas[i][9]) for i in range(len(lineas)) if lineas[i][3]==j]) for j in instancias]
     t_pob = [promedio([float(lineas[i][10]) for i in range(len(lineas)) if lineas[i][3]==j]) for j in instancias]
-    total_it = [promedio([float(lineas[i][11]) for i in range(len(lineas)) if lineas[i][3]==j]) for j in instancias]
+
 
     #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format("ins","min","avg","time","mejor_in","avgmejor_in","it_avg","t_pob"))
     nombre = ruta.split("/")[-1]
-    archivo = open("output/experimento 6/"+nombre,"w")
+    archivo = open("output/Exp2_resumen/"+nombre,"w")
     for i in range(len(instancias)):
         #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
-        print("{} {} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i],total_it[i]),file = archivo)
+        print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
     
 def instancias_tsplib_stats(ruta):
     archivo = open(ruta,"r")
@@ -377,12 +377,11 @@ def instancias_tsplib_stats(ruta):
     avg_mejor_i = [promedio([float(lineas[i][6]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
     iteracion = [promedio([float(lineas[i][7]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
     t_pob = [promedio([float(lineas[i][8]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    total_it = [promedio([float(lineas[i][9]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
     nombre = ruta.split("/")[-1]
-    archivo = open("output/experimento 6/"+nombre,"w")
+    archivo = open("output/Exp2_resumen/"+nombre,"w")
     for i in range(len(instancias)):
         #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
-        print("{} {} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i],total_it[i]),file = archivo)
+        print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
 
 ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/ga_tsplib_irace0.txt"
 
@@ -392,12 +391,8 @@ ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/ga_tsplib_ira
 #agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
 
 #Para instancias SMALL, MEDIUM Y LARGE
-for i in ["tsplib"]:#,"medium","small"]:#"tsplib","large","medium","small"
-    for j in ["AG6"]:#,"AG1","AG2","AG3","AG4","AG5",,"TL_MGA"]:
-        if i == "tsplib":
-            instancias_tsplib_stats(f"/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/exp_final_real/ga_{i}_{j}.txt")
-        else:
-            instancias_prueba_stats(f"/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/experimento 6/ga_{i}_{j}.txt")
+for i in ["tsplib"]:#"tsplib"
+    for j in range(1,7):
+        instancias_tsplib_stats(f"/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/Exp2/ga_{i}_AG{j}.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")
-
