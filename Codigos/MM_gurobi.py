@@ -303,6 +303,7 @@ def subtourelim2(model, where):
 contador_callback = 0
 def subtourelim3(modelo, donde):
     global contador_callback
+    print("hola")
     n = n_ciudades
     if donde == GRB.Callback.MIPNODE:
         #valoresX = modelo.cbGetSolution(modelo._vars)
