@@ -1,5 +1,6 @@
 import gurobipy as gp
 from gurobipy import *
+from gurobipy import GRB
 import pandas as pd
 from itertools import combinations
 import numpy as np
@@ -69,7 +70,6 @@ def costoTotal(ciudad2):
 
 
     return cmax,
-
 
 def solve_lkh(size,batch,instancia,n):
     if output == True:
@@ -167,35 +167,6 @@ def parameters(size,batch,instancia):
 
     return nodes,arch,travel_time,job_time
 
-def subtourelim1(modelo, donde):
-    # Callback - para usar cortes lazy de eliminación de subtour Eq DFJ1
-    n = N
-    if donde == GRB.Callback.MIPNODE:
-        #valoresX = modelo.cbGetSolution(modelo._vars)
-        valoresX = model.cbGetNodeRel(model._vars)
-        # encontrar ciclo más pequeño
-        tour = [i for i in range(n+1)]
-        subtour(tour, valoresX,n)
-        if len(tour) < n:
-            # agregar cortes de elimination de subtour DFJ1
-            modelo.cbLazy(gp.quicksum(modelo._vars[i, j] for i, j in combinations(tour, 2)) <= len(tour)-1)
-
-def subtour(subruta, vals,n):
-    # obtener una lista con los arcos parte de la solucións
-    arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
-    noVisitados = list(range(n))
-    while noVisitados:  # true if list is non-empty
-        ciclo = []
-        vecinos = noVisitados
-        while vecinos:
-            actual = vecinos[0]
-            ciclo.append(actual)
-            noVisitados.remove(actual)
-            vecinos = [j for i, j in arcos.select(actual, '*')
-                       if j in noVisitados]
-        if len(subruta) > len(ciclo):
-            subruta[:] = ciclo
-
 def parameterscsv():
 
     TT = pd.read_csv(f"{path}Data/test/1_TT_paper.csv",index_col= None, header = None)
@@ -259,51 +230,8 @@ def obtener_cortes():
     del aux
     return total
 
-def subtour2(vals):
-    # make a list of edges selected in the solution
-    edges = gp.tuplelist((i, j) for i, j in vals.keys()
-                         if vals[i, j] > 0.5)
-    unvisited = list(range(n_ciudades))
-    cycle = range(n_ciudades+1)  # initial length has 1 more city
-    while unvisited:  # true if list is non-empty
-        thiscycle = []
-        neighbors = unvisited
-        while neighbors:
-            current = neighbors[0]
-            thiscycle.append(current)
-            unvisited.remove(current)
-            neighbors = [j for i, j in edges.select(current, '*')
-                         if j in unvisited]
-        if len(cycle) > len(thiscycle):
-            cycle = thiscycle
-    return cycle
-
-def subtourelim2(model, where):
-    # global contador
-    # global restricciones
-    if where == GRB.Callback.MIPNODE:
-        vals = model.cbGetNodeRel(model._vars)
-        #vals = model.cbGetSolution(model._vars)
-        
-        # find the shortest cycle in the selected edge list
-        tour = subtour2(vals)
-        #rutas.append(tour)
-        #arcos.append([tupla for tupla, valor in vals.items() if valor >0.5])
-        #print(len(tour),n_ciudades,[valor for tupla, valor in vals.items() if valor >0])
-        #print("Intenté")
-        #vals_z = model.cbGetSolution(model._varsz)
-        # aux1 = [(i,j) for i,j in vals.items() if j >0]
-        # aux2 = [(i,j) for i,j in vals_z.items() if j >0]
-        # print(aux1)
-        # print(aux2)
-        if len(tour) < n_ciudades:
-            #print("ENTRE1")
-            model.cbLazy(gp.quicksum(model._vars[i, j] for i, j in combinations(tour, 2))<= len(tour)-1)
-            #print("+".join([f"({i},{j})" for i,j in combinations(tour, 2)])+f"<= {len(tour)-1}")
-        #restricciones.append(contador)
-
 contador_callback = 0
-def subtourelim3(modelo, donde):
+def subtourelim(modelo, donde):
     global contador_callback
     n = n_ciudades
     if donde == GRB.Callback.MIPNODE:
@@ -312,7 +240,7 @@ def subtourelim3(modelo, donde):
         valoresX = modelo.cbGetNodeRel(modelo._vars)
         # encontrar ciclo más pequeño
         tour = [i for i in range(n+1)]
-        subtour3(tour, valoresX,n)
+        subtour(tour, valoresX,n)
         if len(tour) < n:
             contador_callback +=1 
             # agregar cortes de elimination de subtour DFJ2
@@ -327,9 +255,7 @@ def subtourelim3(modelo, donde):
             for i in solucion: print(i)
             exit(0)
 
-            
-
-def subtour3(subruta, vals,n):
+def subtour(subruta, vals,n):
     # obtener una lista con los arcos parte de la solucións
     arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
     noVisitados = list(range(n))
@@ -432,9 +358,6 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             if i != j:
                 M2[i,j] = costo_inicial+TT[(i,j)]
     
-
-
-
     dist = {(i, j):distancia(i,j) for i, j in arcos}
     trabajos = ciudades.copy()
     nodos_trabajos = [(i,k) for i in ciudades for k in ciudades]
@@ -443,8 +366,6 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
     
     global n_ciudades
     n_ciudades = len(ciudades)
-
-
 
     with gp.Env(empty=True) as env:
         env.setParam('OutputFlag',1 if output else 0)#1 if output else 0)
@@ -592,7 +513,7 @@ def gurobi_solver(tipo_instancia,instancia,subtour,sol_inicial,output,sumarM=0):
             modelo._vars = x
             modelo._varsz = z
             #modelo.optimize()
-            modelo.optimize(subtourelim3)
+            modelo.optimize(subtourelim)
             dict_status = {1: 'LOADED', 2: 'OPTIMAL', 3: 'INFEASIBLE', 4: 'INF_OR_UNBD', 5: 'UNBOUNDED', 6: 'CUTOFF', 7: 'ITERATION_LIMIT', 8: 'NODE_LIMIT', 9: 'TIME_LIMIT', 10: 'SOLUTION_LIMIT', 11: 'INTERRUPTED', 12: 'NUMERIC', 13: 'SUBOPTIMAL', 14: 'INPROGRESS', 15: 'USER_OBJ_LIMIT'}
             #modelo.write("file2.lp")
 
