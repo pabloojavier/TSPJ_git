@@ -248,12 +248,12 @@ def subtourelim(modelo, donde):
             modelo.cbLazy(gp.quicksum(modelo._vars[i, j] for i in tour for j in tour2) >= 1)
             #print(depth)
 
-        valoresZ = modelo.cbGetNodeRel(modelo._varsz)
-        solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 and solucion <1]
-        if len(solucion) >0:
-            solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 ]
-            for i in solucion: print(i)
-            exit(0)
+        # valoresZ = modelo.cbGetNodeRel(modelo._varsz)
+        # solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 and solucion <1]
+        # if len(solucion) >0:
+        #     solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 ]
+        #     for i in solucion: print(i)
+        #     exit(0)
 
 def subtour(subruta, vals,n):
     # obtener una lista con los arcos parte de la solucións

@@ -7,6 +7,7 @@ import tsplib95
 import lkh
 import sys
 import warnings
+import networkx as nx
 from typing import Dict, List, Callable, Any
 warnings.filterwarnings("ignore")
 
@@ -114,7 +115,9 @@ class ModeloMatematico(Problem):
                  instance,
                  output = False,
                  subtour : str = "GG",
-                 initial_solution : bool = True
+                 initial_solution : bool = True,
+                 callback : Callable = None,
+                 bounds: bool = True
                  ):
         """
         Initialize mathematical model with some default values
@@ -129,6 +132,8 @@ class ModeloMatematico(Problem):
         self.output = output
         self.subtour = subtour
         self.initial_solution = initial_solution
+        self.callback = callback
+        self.bounds = bounds
 
         self.compute_M()
         self.jobs = self.cities.copy()
@@ -171,6 +176,7 @@ class ModeloMatematico(Problem):
 
         self.modelo.setObjective(self.Cmax, GRB.MINIMIZE)
 
+        #Restricción adicional de reforzamiento
         self.modelo.addConstr(self.Cmax >= self.jt_min + gp.quicksum(self.x[(i,j)]*self.TT[(i,j)] for i in self.cities for j in self.cities[1:] if i!=j))
 
         self.modelo.addConstrs(self.x.sum(i,'*') == 1 for i in self.cities) # Outgoing
@@ -195,7 +201,7 @@ class ModeloMatematico(Problem):
                 if i!=j:
                     self.modelo.addConstr(self.TS[i] + self.TT[(j,i)] - (1-self.x[(i,j)])*self.M <= self.TS[j])
 
-        self.modelo.Params.LazyConstraints = 1
+        
         self.modelo.Params.Threads = 1
         self.modelo.Params.TimeLimit = 1500
         self.modelo.update()
@@ -267,23 +273,24 @@ class ModeloMatematico(Problem):
         """
         Add new constraints, builts in this work.
         """
-        self.heuristic_jobs = self.NNJA(self.lkh_route[1:],self.JT)
-        
-        costo_inicial = self.fitness_functions([self.lkh_route[1:],self.heuristic_jobs])[0]
-        menor_arco_depot = min(self.TT[(0,i)] for i in range(1,self.n))
+        if self.bounds:
+            self.heuristic_jobs = self.NNJA(self.lkh_route[1:],self.JT)
+            
+            costo_inicial = self.fitness_functions([self.lkh_route[1:],self.heuristic_jobs])[0]
+            menor_arco_depot = min(self.TT[(0,i)] for i in range(1,self.n))
 
-        #Cota superior tiempo de inicio
-        for i in self.cities:
-            self.modelo.addConstr(self.TS[i]<=costo_inicial)
+            #Cota superior tiempo de inicio
+            for i in self.cities:
+                self.modelo.addConstr(self.TS[i]<=costo_inicial)
 
-        #Cota inferior tiempo de inicio
-        for i in range(1,self.n):
-            self.modelo.addConstr(self.TS[i]>=menor_arco_depot) 
+            #Cota inferior tiempo de inicio
+            for i in range(1,self.n):
+                self.modelo.addConstr(self.TS[i]>=menor_arco_depot) 
 
-        #Cota superior de solucion inicial (lkh+NNJ)
-        self.modelo.addConstr(self.Cmax<=costo_inicial)
-        
-        self.modelo.update()
+            #Cota superior de solucion inicial (lkh+NNJ)
+            self.modelo.addConstr(self.Cmax<=costo_inicial)
+            
+            self.modelo.update()
 
     def add_initial_solution(self):
         """
@@ -311,9 +318,20 @@ class ModeloMatematico(Problem):
                     if arch_name in self.initial_job_arch:
                         var.Start = 1
         self.modelo.update()
-            
+
     def optimize(self):
-        self.modelo.optimize()
+        if self.callback == None:
+            self.modelo._callback_count = 0
+            self.modelo.optimize()
+        else:
+            self.modelo.Params.LazyConstraints = 1
+            self.modelo._xvars = self.x
+            self.modelo._zvars = self.z
+            self.modelo._n = self.n
+            self.modelo._callback_count = 0
+            self.modelo._epsilon = 0.00001
+            self.modelo._DG = nx.DiGraph(nx.complete_graph(self.n))
+            self.modelo.optimize(self.callback)
 
     def run(self):
         self.create_base_model()
@@ -331,30 +349,129 @@ class ModeloMatematico(Problem):
         if self.modelo.Status == GRB.OPTIMAL or self.modelo.SolCount > 0:
             objective = self.modelo.getObjective().getValue()
             gap = round((objective-lower)/lower*100,4)
-            lower = round(lower,1)
+            lower = round(lower,2)
             objective = round(objective,2)
 
         else:
-            print(self.instance, ':Optimization ended with status %d' % self.modelo.Status)
+            #print(self.instance, ':Optimization ended with status %d' % self.modelo.Status)
             if self.modelo.SolCount > 0:
-                    objective = self.modelo.getObjective().getValue()
-                    lower = self.modelo.getObjective().getValue()
-                    gap = round((objective-lower)/lower*100,4)
-                    lower = round(lower,4)
-                    objective = round(objective,2)
+                objective = self.modelo.getObjective().getValue()
+                lower = self.modelo.getObjective().getValue()
+                gap = round((objective-lower)/lower*100,4)
+                lower = round(lower,2)
+                objective = round(objective,2)
         
         time = round(self.modelo.Runtime,4)
-        self.callback_count = 1
-        print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}".format(self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.callback_count))
+        lower = round(lower,2)
+        print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}".format(self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.modelo._callback_count))
 
-size = "small"
-subtour = "GG"
-instance = "gr17"
-initial_solution = True
+def CUT_fractional_callback(modelo: gp.Model, where):
+    n = modelo._n
+    case1 = where == GRB.Callback.MIPSOL
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
+    
+    if not case1 and not case2:
+        return
+    
+    if case1:
+        xval = modelo.cbGetSolution(modelo._xvars)
+    elif case2:
+        xval = modelo.cbGetNodeRel(modelo._xvars)
+    
+    edges_used = [ (i,j) for i,j in modelo._DG.edges if xval[i,j] > modelo._epsilon ]
+    DG_support = modelo._DG.edge_subgraph( edges_used )
+
+    if not nx.is_strongly_connected( DG_support ):
+        for component in nx.strongly_connected_components( DG_support ):
+            complement = [ i for i in modelo._DG.nodes if i not in component ]
+            modelo._callback_count +=1 
+            modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in component for j in complement ) >= 1 )
+
+    else:
+        for i,j in modelo._DG.edges:
+            modelo._DG.edges[i,j]['capacity'] = xval[i,j]
+
+        s = 0
+        for t in range(1,n):
+            (cut_value, node_partition) = nx.minimum_cut( modelo._DG, _s=s, _t=t )
+            if cut_value < 1 - modelo._epsilon:
+                S = node_partition[0]
+                T = node_partition[1]
+                modelo._callback_count +=1 
+                modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in S for j in T ) >= 1 )
+                return
+
+def DFJ_fractional_callback(modelo:gp.Model, where):
+
+    case1 = where == GRB.Callback.MIPSOL
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
+    
+    if not case1 and not case2:
+        return
+    
+    if case1:
+        xval = modelo.cbGetSolution(modelo._xvars)
+    elif case2:
+        xval = modelo.cbGetNodeRel(modelo._xvars)
+    
+    edges_used = [ (i,j) for i,j in modelo._DG.edges if xval[i,j] > modelo._epsilon ]
+    DG_support = modelo._DG.edge_subgraph( edges_used )
+    if not nx.is_strongly_connected( DG_support ):
+        for component in nx.strongly_connected_components( DG_support ):
+            modelo._callback_count +=1 
+            modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in component for j in component if i!=j ) <= len(component) - 1 )
+    else:
+        for i,j in modelo._DG.edges:
+            modelo._DG.edges[i,j]['capacity'] = xval[i,j]
+
+        s = 0
+        for t in range(1,modelo._n):
+            (cut_value, node_partition) = nx.minimum_cut( modelo._DG, _s=s, _t=t )
+            if cut_value < 1 - modelo._epsilon:
+                S = node_partition[0]
+                modelo._callback_count +=1 
+                modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in S for j in S if i!=j ) <= len(S) - 1 )
+                return
+
+def subtourelim(modelo:gp.Model, donde):
+    n = modelo._n
+
+    if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL ):
+        valoresX = modelo.cbGetNodeRel(modelo._xvars)
+        tour = [i for i in range(n+1)]
+        subtour_method(tour, valoresX,n)
+        if len(tour) < n:
+            modelo._callback_count +=1 
+            tour2 = [i for i in range(n) if i not in tour]
+            modelo.cbLazy(gp.quicksum(modelo._xvars[i, j] for i in tour for j in tour2) >= 1)
+
+def subtour_method(subruta, vals,n):
+    # obtener una lista con los arcos parte de la solucións
+    arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
+    noVisitados = list(range(n))
+    while noVisitados: # true if list is non-empty
+        ciclo = []
+        vecinos = noVisitados
+        while vecinos:
+            actual = vecinos[0]
+            ciclo.append(actual)
+            noVisitados.remove(actual)
+            vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
+        if len(subruta) > len(ciclo):
+            subruta[:] = ciclo
+     
+size = "tsplib"
+instance = 1
+subtour = "WC"
+initial_solution = False
 output = False
+callback = None
+bounds = None
+#Considerar con y sin cotas
 
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
+
 for i in range(len(opts)):
     if opts[i][0][1:] == "tipo":  size  = (opts[i][1])
     elif   opts[i][0][1:] == "subtour": subtour = int(opts[i][1])
@@ -366,14 +483,27 @@ for i in range(len(opts)):
     elif   opts[i][0][1:] == "solinicial": initial_solution = True if str(opts[i][1]) =="True" else False
     elif   opts[i][0][1:] == "output": output = True if str(opts[i][1]) =="True" else False
 
-for i in range(1,11):
-    instance = i
-    MM = ModeloMatematico(size,instance)
-    MM.subtour = subtour
-    MM.output = output
-    MM.initial_solution = initial_solution
-    MM.run()
-    MM.print_model()
+instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
+configs = ("BASE","GG","mycallback","dfj","cut")
+for i,cb in enumerate((1,2,subtourelim,DFJ_fractional_callback,CUT_fractional_callback)):
+    print(configs[i]+":")
+    for instance in instancias:
+        MM = ModeloMatematico(size,instance)
+        MM.callback = cb
+        if cb == 1:
+            MM.callback = None
+            MM.subtour = "WC"
+        elif cb == 2:
+            MM.callback = None
+            MM.subtour = "GG"
+        else:
+            MM.callback = cb
+            MM.subtour = "WC"
+        MM.output = output
+        MM.initial_solution = initial_solution
+        MM.run()
+        MM.print_model()
+    print("")    
 
 
 
