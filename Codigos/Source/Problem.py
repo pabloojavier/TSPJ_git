@@ -82,12 +82,15 @@ class Problem:
         solver_path = path+'LKH-3.0.7/LKH'
 
         ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
-        self.lkh_route = [i-1 for i in ciudad]
+        self.lkh_route =  [i-1 for i in ciudad if i != 1]
 
     def get_lkh_route(self):
         return self.lkh_route
     
-    def fitness_functions(self,solution):
+    def fitness_functions(self,solution:Callable[[List,List],float]):
+        """
+        Get the objective function of *solution*
+        """
         ciudad = solution[0]
         trabajo = solution[1]
         n = len(ciudad)
