@@ -32,6 +32,7 @@ class MathematicalModel(Problem):
         self.initial_solution = initial_solution
         self.callback = callback
         self.bounds = bounds
+        self.time_limit = 1800
 
         self.compute_M()
         self.jobs = self.cities.copy()
@@ -101,7 +102,8 @@ class MathematicalModel(Problem):
 
         
         self.modelo.Params.Threads = 1
-        self.modelo.Params.TimeLimit = 1500
+        self.modelo.Params.TimeLimit = self.time_limit
+        self.modelo._callback_time = 0
         self.modelo.update()
 
     def add_subtour_constraint(self):
@@ -219,6 +221,7 @@ class MathematicalModel(Problem):
     def optimize(self):
         if self.callback == None:
             self.modelo._callback_count = 0
+            self.modelo._callback_time = 0
             self.modelo.optimize()
         else:
             self.modelo.Params.LazyConstraints = 1
@@ -260,5 +263,5 @@ class MathematicalModel(Problem):
         
         time = round(self.modelo.Runtime,4)
         lower = round(lower,2)
-        print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}".format(self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.modelo._callback_count))
+        print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}".format(self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.modelo._callback_count,self.modelo._callback_time))
 

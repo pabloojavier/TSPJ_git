@@ -3,80 +3,236 @@ from gurobipy import GRB
 import sys
 import warnings
 import networkx as nx
+import time
 warnings.filterwarnings("ignore")
 
 from Source.Problem import Problem
 from Source.MathematicalModel import MathematicalModel as MILP
 
-def CUT_fractional_callback(modelo: gp.Model, where):
-    n = modelo._n
+def CUT_integer_separation(m:gp.Model, where):
+    initial = time.time()
+    # check if LP relaxation at this branch-and-bound node has an integer solution
+    if where == GRB.Callback.MIPSOL: 
+        
+        # retrieve the LP solution
+        xval = m.cbGetSolution(m._xvars)
+        
+        # which edges are selected?
+        edges_used = [ (i,j) for i,j in m._DG.edges if xval[i,j] > 0.5 ]
+        
+        # create support graph
+        DG_soln = m._DG.edge_subgraph( edges_used )
+        
+        # if solution is not connected, add a (violated) CUT constraint for each subtour
+        if not nx.is_strongly_connected( DG_soln ):
+            for component in nx.strongly_connected_components( DG_soln ):
+                m._callback_count +=1 
+                complement = [ i for i in DG_soln.nodes if i not in component ]
+                m.cbLazy( gp.quicksum( m._x[i,j] for i in component for j in complement ) >= 1 )
+    m._callback_time += time.time()-initial
+
+def CUT_naive_fractional_separation(m:gp.Model, where):
+    initial = time.time()
+    # We must *separately* handle these two cases of interest:
+    #    1. We encounter an integer point that might replace our incumbent
+    #    2. We encounter a fractional point *that is LP optimal*
+    #
     case1 = where == GRB.Callback.MIPSOL
-    case2 = ( where == GRB.Callback.MIPNODE ) and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( m.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
     
     if not case1 and not case2:
         return
     
+    # retrieve the LP solution
     if case1:
-        xval = modelo.cbGetSolution(modelo._xvars)
+        xval = m.cbGetSolution(m._xvars)
     elif case2:
-        xval = modelo.cbGetNodeRel(modelo._xvars)
-    
-    edges_used = [ (i,j) for i,j in modelo._DG.edges if xval[i,j] > modelo._epsilon ]
-    DG_support = modelo._DG.edge_subgraph( edges_used )
+        xval = m.cbGetNodeRel(m._xvars)
+        
+    # which edges are selected (in whole or in part)?
+    DG = m._DG
+    edges_used = [ (i,j) for i,j in DG.edges if xval[i,j] > m._epsilon ]
 
+    # check if any CUT inequalities are violated (by solving some min cut problems)
+    for i,j in DG.edges:
+        DG.edges[i,j]['capacity'] = xval[i,j]
+
+    s = 0
+    for t in range(1,m._n):
+        (cut_value, node_partition) = nx.minimum_cut( DG, _s=s, _t=t )
+        # print("cut_value =",cut_value)
+        if cut_value < 1 - m._epsilon:
+            m._callback_count +=1 
+            S = node_partition[0]  # 'left' side of the cut
+            T = node_partition[1]  # 'right' side of the cut
+            m.cbLazy( gp.quicksum( m._xvars[i,j] for i in S for j in T ) >= 1 )
+            m._callback_time += time.time()-initial
+            return
+
+def CUT_smarter_fractional_separation(m:gp.Model, where):
+    initial = time.time()
+    # We must *separately* handle these two cases of interest:
+    #    1. We encounter an integer point that might replace our incumbent
+    #    2. We encounter a fractional point *that is LP optimal*
+    #
+    n = m._n
+    case1 = where == GRB.Callback.MIPSOL
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( m.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
+    
+    if not case1 and not case2:
+        m._callback_time += time.time()-initial
+        return
+    
+    # retrieve the LP solution
+    if case1:
+        xval = m.cbGetSolution(m._xvars)
+    elif case2:
+        xval = m.cbGetNodeRel(m._xvars)
+    
+    DG = m._DG
+    # if the support graph is disconnected, then finding violated cuts is easy!
+    edges_used = [ (i,j) for i,j in DG.edges if xval[i,j] > m._epsilon ]
+    DG_support = DG.edge_subgraph( edges_used )
     if not nx.is_strongly_connected( DG_support ):
         for component in nx.strongly_connected_components( DG_support ):
-            complement = [ i for i in modelo._DG.nodes if i not in component ]
-            modelo._callback_count +=1 
-            modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in component for j in complement ) >= 1 )
-
+            m._callback_count +=1 
+            complement = [ i for i in DG.nodes if i not in component ]
+            m.cbLazy( gp.quicksum( m._xvars[i,j] for i in component for j in complement ) >= 1 )
     else:
-        for i,j in modelo._DG.edges:
-            modelo._DG.edges[i,j]['capacity'] = xval[i,j]
+        # check if any CUT inequalities are violated (by solving some min cut problems)
+        for i,j in DG.edges:
+            DG.edges[i,j]['capacity'] = xval[i,j]
 
         s = 0
         for t in range(1,n):
-            (cut_value, node_partition) = nx.minimum_cut( modelo._DG, _s=s, _t=t )
-            if cut_value < 1 - modelo._epsilon:
-                S = node_partition[0]
-                T = node_partition[1]
-                modelo._callback_count +=1 
-                modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in S for j in T ) >= 1 )
+            (cut_value, node_partition) = nx.minimum_cut( DG, _s=s, _t=t )
+            # print("cut_value =",cut_value)
+            if cut_value < 1 - m._epsilon:
+                m._callback_count +=1 
+                S = node_partition[0]  # 'left' side of the cut
+                T = node_partition[1]  # 'right' side of the cut
+                m.cbLazy( gp.quicksum( m._xvars[i,j] for i in S for j in T ) >= 1 )
+                m._callback_time += time.time()-initial
                 return
 
-def DFJ_fractional_callback(modelo:gp.Model, where):
+def DFJ_integer_separation(m:gp.Model, where):
+    initial = time.time()
+    # check if LP relaxation at this branch-and-bound node has an integer solution
+    if where == GRB.Callback.MIPSOL: 
+        
+        # retrieve the LP solution
+        xval = m.cbGetSolution(m._xvars)
+        
+        # which edges are selected?
 
+        edges_used = [ (i,j) for i,j in m._DG.edges if xval[i,j] > 0.5 ]
+        
+        # create support graph
+        DG_soln = m._DG.edge_subgraph( edges_used )
+        
+        # if solution is not connected, add a (violated) DFJ constraint for each subtour
+        if not nx.is_strongly_connected( DG_soln ):
+            for component in nx.strongly_connected_components( DG_soln ):
+                m._callback_count +=1 
+                m.cbLazy( gp.quicksum( m._xvars[i,j] for i in component for j in component if i!=j ) <= len(component) - 1 )
+    m._callback_time += time.time()-initial
+
+def DFJ_naive_fractional_separation(m:gp.Model, where):
+    initial = time.time()
+    # We must *separately* handle these two cases of interest:
+    #    1. We encounter an integer point that might replace our incumbent
+    #    2. We encounter a fractional point *that is LP optimal*
+    #
     case1 = where == GRB.Callback.MIPSOL
-    case2 = ( where == GRB.Callback.MIPNODE ) and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( m.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
     
     if not case1 and not case2:
+        m._callback_time += time.time()-initial
         return
     
+    # retrieve the LP solution
     if case1:
-        xval = modelo.cbGetSolution(modelo._xvars)
+        xval = m.cbGetSolution(m._xvars)
     elif case2:
-        xval = modelo.cbGetNodeRel(modelo._xvars)
+        xval = m.cbGetNodeRel(m._xvars)
+        
+    # which edges are selected (in whole or in part)?
+    DG = m._DG
+    edges_used = [ (i,j) for i,j in DG.edges if xval[i,j] > m._epsilon ]
+
+    # check if any CUT inequalities are violated (by solving some min cut problems)
+    for i,j in DG.edges:
+        DG.edges[i,j]['capacity'] = xval[i,j]
+
+    s = 0
+    for t in range(1,m._n):
+        (cut_value, node_partition) = nx.minimum_cut( DG, _s=s, _t=t )
+        # print("cut_value =",cut_value)
+        if cut_value < 1 - m._epsilon:
+            m._callback_count +=1 
+            S = node_partition[0]  # 'left' side of the cut
+            m.cbLazy( gp.quicksum( m._xvars[i,j] for i in S for j in S if i!=j ) <= len(S) - 1 )
+    m._callback_time += time.time()-initial
+
+def DFJ_smarter_fractional_separation(m:gp.Model, where):
+    initial = time.time()
+    # We must *separately* handle these two cases of interest:
+    #    1. We encounter an integer point that might replace our incumbent
+    #    2. We encounter a fractional point *that is LP optimal*
+    #
+    case1 = where == GRB.Callback.MIPSOL
+    case2 = ( where == GRB.Callback.MIPNODE ) and ( m.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL )
     
-    edges_used = [ (i,j) for i,j in modelo._DG.edges if xval[i,j] > modelo._epsilon ]
-    DG_support = modelo._DG.edge_subgraph( edges_used )
+    if not case1 and not case2:
+        m._callback_time += time.time()-initial
+        return
+    
+    # retrieve the LP solution
+    if case1:
+        xval = m.cbGetSolution(m._xvars)
+    elif case2:
+        xval = m.cbGetNodeRel(m._xvars)
+    
+    # if the support graph is disconnected, then finding violated cuts is easy!
+    DG = m._DG
+    edges_used = [ (i,j) for i,j in DG.edges if xval[i,j] > m._epsilon ]
+    DG_support = DG.edge_subgraph( edges_used )
     if not nx.is_strongly_connected( DG_support ):
         for component in nx.strongly_connected_components( DG_support ):
-            modelo._callback_count +=1 
-            modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in component for j in component if i!=j ) <= len(component) - 1 )
+            m._callback_count +=1 
+            m.cbLazy( gp.quicksum( m._xvars[i,j] for i in component for j in component if i!=j ) <= len(component) - 1 )
     else:
-        for i,j in modelo._DG.edges:
-            modelo._DG.edges[i,j]['capacity'] = xval[i,j]
+        # check if any CUT inequalities are violated (by solving some min cut problems)
+        for i,j in DG.edges:
+            DG.edges[i,j]['capacity'] = xval[i,j]
 
         s = 0
-        for t in range(1,modelo._n):
-            (cut_value, node_partition) = nx.minimum_cut( modelo._DG, _s=s, _t=t )
-            if cut_value < 1 - modelo._epsilon:
-                S = node_partition[0]
-                modelo._callback_count +=1 
-                modelo.cbLazy( gp.quicksum( modelo._xvars[i,j] for i in S for j in S if i!=j ) <= len(S) - 1 )
+        for t in range(1,m._n):
+            (cut_value, node_partition) = nx.minimum_cut( DG, _s=s, _t=t )
+            # print("cut_value =",cut_value)
+            if cut_value < 1 - m._epsilon:
+                S = node_partition[0]  # 'left' side of the cut
+                m._callback_count +=1 
+                m.cbLazy( gp.quicksum( m._xvars[i,j] for i in S for j in S if i!=j ) <= len(S) - 1 )
+                m._callback_time += time.time()-initial
                 return
 
 def subtourelim(modelo:gp.Model, donde):
+    def subtour_method(subruta, vals,n):
+        # obtener una lista con los arcos parte de la solucións
+        arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
+        noVisitados = list(range(n))
+        while noVisitados: # true if list is non-empty
+            ciclo = []
+            vecinos = noVisitados
+            while vecinos:
+                actual = vecinos[0]
+                ciclo.append(actual)
+                noVisitados.remove(actual)
+                vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
+            if len(subruta) > len(ciclo):
+                subruta[:] = ciclo
+    initial = time.time()
     n = modelo._n
 
     if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL ):
@@ -87,60 +243,43 @@ def subtourelim(modelo:gp.Model, donde):
             modelo._callback_count +=1 
             tour2 = [i for i in range(n) if i not in tour]
             modelo.cbLazy(gp.quicksum(modelo._xvars[i, j] for i in tour for j in tour2) >= 1)
-
-def subtour_method(subruta, vals,n):
-    # obtener una lista con los arcos parte de la solucións
-    arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
-    noVisitados = list(range(n))
-    while noVisitados: # true if list is non-empty
-        ciclo = []
-        vecinos = noVisitados
-        while vecinos:
-            actual = vecinos[0]
-            ciclo.append(actual)
-            noVisitados.remove(actual)
-            vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
-        if len(subruta) > len(ciclo):
-            subruta[:] = ciclo
+    modelo._callback_time += time.time()-initial
      
 size = "tsplib"
-instance = 1
+instance = "gr17"
 subtour = "WC"
 initial_solution = False
 output = False
 callback = None
 bounds = False
+test = [1,2,
+        subtourelim,
+        CUT_integer_separation,CUT_naive_fractional_separation,CUT_smarter_fractional_separation,
+        DFJ_integer_separation,DFJ_naive_fractional_separation,DFJ_smarter_fractional_separation]
 
-instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-configs = ("BASE","GG","GG+bounds","mycallback","dfj","cut")
-for i,cb in enumerate((1,2,3,subtourelim,DFJ_fractional_callback,CUT_fractional_callback)):
-    print(configs[i]+":")
-    for instance in instancias:
-        MM = MILP(size,instance)
-        MM.callback = cb
-        if cb == 1:
-            MM.callback = None
-            MM.subtour = "WC"
-            MM.bounds = False
-        elif cb == 2:
-            MM.callback = None
-            MM.subtour = "GG"
-            MM.bounds = False
-        elif cb == 3:
-            MM.callback = None
-            MM.subtour = "GG"
-            MM.bounds = True
-        else:
+instancias = [["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"],
+              [i for i in range(1,101)],
+              [i for i in range(1,101)]]
+
+configs = ("BASE","GG","mycallback","CUT integer","CUT naive","CUT smarter","DJF integer","DJF naive","DJF smarter")
+
+#           #callback,bounds,subtour
+options = [(subtourelim,True,"WC"),
+           (None,True,"GG"),
+           (CUT_naive_fractional_separation,True,"WC"),
+           (CUT_smarter_fractional_separation,True,"WC")]
+
+for cb,bool_bounds,subtour_type in options:
+    print(f"{cb.__name__} and {'bounds' if bool_bounds else 'no bounds'}:")
+    for j,size in enumerate(("tsplib","small","medium")):
+        for instance in instancias[j]:
+            MM = MILP(size,instance)
             MM.callback = cb
-            MM.subtour = "WC"
-            MM.bounds = False
-
-        MM.output = output
-        MM.initial_solution = initial_solution
-        MM.run()
-        MM.print_results()
-    print("")    
-
-
-
-
+            MM.bounds = bool_bounds
+            MM.callback = cb
+            MM.subtour = subtour_type
+            MM.output = output
+            MM.initial_solution = initial_solution
+            MM.run()
+            MM.print_results()
+print("")    
