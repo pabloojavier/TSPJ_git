@@ -390,10 +390,13 @@ class MathematicalModel(Problem):
             valoresZ = modelo.cbGetNodeRel(modelo._zvars)
             solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 and solucion <1]
             if len(solucion) >0:
-                modelo._callback_count +=1 
                 solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 ]
                 new_lb = MathematicalModel.get_min_job(modelo._JT,solucion)
-                modelo.cbLazy(modelo._Cmax >= new_lb + gp.quicksum(modelo._xvars[i,j]*modelo._TT[i][j] for i in modelo._cities for j in modelo._cities[1:] if i!=j))
+                if new_lb > modelo._jt_min:
+                    modelo._jt_min = new_lb
+                    print(modelo._jt_min)
+                    modelo.cbLazy(modelo._Cmax >= modelo._jt_min + gp.quicksum(modelo._xvars[i,j]*modelo._TT[i][j] for i in modelo._cities for j in modelo._cities[1:] if i!=j))
+                    modelo._callback_count +=1 
 
         modelo._callback_time += time.time()-initial
         
@@ -502,6 +505,7 @@ class MathematicalModel(Problem):
             self.modelo._JT = self.JT
             self.modelo._TT = self.TT
             self.modelo._Cmax = self.Cmax
+            self.modelo._jt_min = self.jt_min
             self.modelo._cities = self.cities
             self.modelo._n = self.n
             self.modelo._callback_count = 0

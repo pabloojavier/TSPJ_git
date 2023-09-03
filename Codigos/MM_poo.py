@@ -12,11 +12,11 @@ argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
 size = "small"
-instance = 1
+instance = "72"
 callback = "subtourelim"
 bounds = True
 subtour = "GG"
-output = True
+output = False
 initial_sol = True
 
 for i in range(len(opts)):

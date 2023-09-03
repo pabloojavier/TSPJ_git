@@ -16,7 +16,7 @@ class Problem:
     def __init__(self,size,instance):
         self.size = size.lower()
         self.instance = instance
-        self.batch = (self.instance-1)//25+1 if self.size != "tsplib" else ""
+        self.batch = (int(self.instance)-1)//25+1 if self.size != "tsplib" else ""
         
         self.path = path
         self.__parameters()
