@@ -74,7 +74,7 @@ class MGA(Problem):
             min = float("inf")
             for candidate in range(1,n+1):
                 if selectioned[candidate-1] == False and candidate != actual:
-                    cost = self.TT[(actual, candidate)]
+                    cost = self.TT[actual][candidate]
                     if cost < min:
                         min = cost
                         _next = candidate
@@ -125,7 +125,7 @@ class MGA(Problem):
 
         nodes = [i for i in range(n+1)]
         arch = [(i, j) for i in nodes for j in nodes if i < j]
-        dist = {(i, j):self.TT[(i,j)] for i, j in arch}
+        dist = {(i, j):self.TT[i][j] for i, j in arch}
 
         with gp.Env(empty=True) as env:
             env.setParam('OutputFlag', 0)
@@ -389,7 +389,7 @@ class MGA(Problem):
         flag = True
         for i in range(n - 2):
             for j in range(i + 1, n - 1):
-                nuevoCosto = self.TT[(city[i], city[j])] + self.TT[(city[i + 1], city[j + 1])] - self.TT[(city[i], city[i + 1])] - self.TT[(city[j], city[j + 1])]
+                nuevoCosto = self.TT[city[i]][city[j]] + self.TT[city[i + 1]][city[j + 1]] - self.TT[city[i]][city[i+1]] - self.TT[city[j]][city[j+1]]
                 if nuevoCosto < actual:
                     actual = nuevoCosto
                     min_i, min_j = i, j
@@ -407,18 +407,18 @@ class MGA(Problem):
 
     def JobLocalSearch(self,ciudad,trabajo):
         n = len(ciudad)
-        suma_ac = [self.TT[(0, ciudad[0])]]
+        suma_ac = [self.TT[0][ciudad[0]]]
         suma = suma_ac[-1]
-        maxtime = suma_ac[-1]+self.JT[(trabajo[0],ciudad[0])] 
+        maxtime = suma_ac[-1]+self.JT[trabajo[0]][ciudad[0]] 
         cmax_antiguo = 0
         cmax2_antiguo = 0
         best_i = 0
         i2 = 0
         i = 0
         while i < n - 1:
-            suma += self.TT[(ciudad[i], ciudad[i + 1])]
+            suma += self.TT[ciudad[i]][ciudad[i + 1]]
             suma_ac.append(suma)
-            maxtime = suma_ac[-1] + self.JT[(trabajo[i+1],ciudad[i+1])]
+            maxtime = suma_ac[-1] + self.JT[trabajo[i+1]][ciudad[i+1]]
             if maxtime > cmax_antiguo:
                 cmax2_antiguo = cmax_antiguo
                 i2 = best_i
@@ -429,7 +429,7 @@ class MGA(Problem):
                 i2 = i
             i += 1
 
-        suma += self.TT[(ciudad[-1], 0)]
+        suma += self.TT[ciudad[-1]][0]
         suma_ac.append(suma)
         if suma_ac[-1]>cmax_antiguo:
             cmax2_antiguo = cmax_antiguo
@@ -440,8 +440,8 @@ class MGA(Problem):
         aux = -1
         for i in range(len(trabajo)):
             if i != best_i:
-                cmax1_nuevo = suma_ac[best_i] + self.JT[(trabajo[i],ciudad[best_i])]
-                cambio2 = suma_ac[i] + self.JT[(trabajo[i],ciudad[i])]
+                cmax1_nuevo = suma_ac[best_i] + self.JT[trabajo[i]][ciudad[best_i]]
+                cambio2 = suma_ac[i] + self.JT[trabajo[i]][ciudad[i]]
                 if cmax1_nuevo < cmax_antiguo:
                     if cmax1_nuevo > cambio2:
                         if cmax1_nuevo < cmax2_antiguo: 
@@ -550,10 +550,7 @@ class MGA(Problem):
     
     def print_results(self):
         m,t,p,d,mejor_iteracion,promedio_inicial,mejor_inicial,t_poblacion = self.get_results()
-        if self.size != "tsplib":
-            print("{:<6}{:<8}{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format(self.seed,self.size,self.batch,self.instance,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion,round(t_poblacion,2)))
-        else:
-            print("{:<6}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format(self.seed,self.instance,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion,round(t_poblacion,2)))
+        print("{:<6}{:<8}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format(self.seed,self.size,self.instance,"%.2f"%float(m),"%.2f"%float(p),"%.3f"%t,"%.2f"%float(mejor_inicial),"%.2f"%float(promedio_inicial),mejor_iteracion,round(t_poblacion,2)))
     
     def get_solution(self):
         return self.top
