@@ -48,9 +48,7 @@ class MathematicalModel(Problem):
         self.jobs = self.cities.copy()
         self.jobs_arch = [(i,k) for i in self.cities for k in self.cities]
         
-        #jt_aux = np.array(list(self.JT.values()))
-        self.jt_min = self.JT.replace(0,9999999).to_numpy().min()
-        #self.jt_min = jt_aux[(jt_aux >= 1)].min()
+        self.jt_min = self.JT.replace(0,9999999).fillna(9999999).to_numpy().min()
 
     def compute_M(self):
         """
@@ -388,6 +386,15 @@ class MathematicalModel(Problem):
                 modelo._callback_count +=1 
                 tour2 = [i for i in range(n) if i not in tour]
                 modelo.cbLazy(gp.quicksum(modelo._xvars[i, j] for i in tour for j in tour2) >= 1)
+
+            valoresZ = modelo.cbGetNodeRel(modelo._zvars)
+            solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 and solucion <1]
+            if len(solucion) >0:
+                modelo._callback_count +=1 
+                solucion = [(arco,solucion) for arco,solucion in valoresZ.items() if solucion >0 ]
+                new_lb = MathematicalModel.get_min_job(modelo._JT,solucion)
+                modelo.cbLazy(modelo._Cmax >= new_lb + gp.quicksum(modelo._xvars[i,j]*modelo._TT[i][j] for i in modelo._cities for j in modelo._cities[1:] if i!=j))
+
         modelo._callback_time += time.time()-initial
         
     @staticmethod
@@ -421,6 +428,17 @@ class MathematicalModel(Problem):
     @staticmethod
     def sort_jobs(route,jobs):
         return [(route[i],jobs[i]) for i in range(len(route))]
+
+    @staticmethod
+    def get_min_job(JT:pd.DataFrame,ja):
+        df = JT.copy().replace(0,99999).fillna(99999)
+        assings = [i[0] for i in ja if i[1]>0.99]
+        for i in assings:
+            df.iloc[i[0]] = 99999
+            df.iloc[i[0],i[1]] = JT.iloc[i[0],i[1]]
+            df[i[1]] = 99999
+            df[i[1]][i[0]] = JT[i[1]][i[0]]
+        return df.to_numpy().min()
 
     def add_new_constraint(self):
         """
@@ -481,6 +499,10 @@ class MathematicalModel(Problem):
             self.modelo.Params.LazyConstraints = 1
             self.modelo._xvars = self.x
             self.modelo._zvars = self.z
+            self.modelo._JT = self.JT
+            self.modelo._TT = self.TT
+            self.modelo._Cmax = self.Cmax
+            self.modelo._cities = self.cities
             self.modelo._n = self.n
             self.modelo._callback_count = 0
             self.modelo._callback_time = 0
@@ -519,3 +541,5 @@ class MathematicalModel(Problem):
         time = round(self.modelo.Runtime,4)
         lower = round(lower,2)
         print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}".format(self.size,self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.modelo._callback_count,self.modelo._callback_time))
+
+

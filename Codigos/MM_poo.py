@@ -11,12 +11,12 @@ from Source.MathematicalModel import MathematicalModel as MILP
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
-size = "tsplib"
-instance = "gr17"
-callback = "None"
+size = "small"
+instance = 1
+callback = "subtourelim"
 bounds = True
 subtour = "GG"
-output = False
+output = True
 initial_sol = True
 
 for i in range(len(opts)):
@@ -39,6 +39,6 @@ MM.bounds = bounds
 MM.subtour = subtour
 MM.output = output
 MM.initial_solution = initial_sol
-MM.time_limit = 1
+#MM.time_limit = 1
 MM.run()
 MM.print_results()
