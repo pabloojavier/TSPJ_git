@@ -1,6 +1,6 @@
 from ast import arg
 from code import InteractiveConsole
-from termcolor import colored
+#from termcolor import colored
 import pandas as pd
 import numpy as np
 from tabulate import tabulate
@@ -365,34 +365,59 @@ def instancias_prueba_stats(ruta):
         #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
         print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
     
-def instancias_tsplib_stats(ruta):
-    archivo = open(ruta,"r")
-    lineas=[linea.split() for linea in archivo]
-    instancias = ["gr17","gr21","gr24","fri26","bays29","gr48","eil51","berlin52","eil76","eil101"]
-
-    minimos = [min( [float(lineas[i][2]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    avg = [promedio([float(lineas[i][3]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    tiempos = [promedio([float(lineas[i][4]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    mejor_i =  [min( [float(lineas[i][5]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    avg_mejor_i = [promedio([float(lineas[i][6]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    iteracion = [promedio([float(lineas[i][7]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
-    t_pob = [promedio([float(lineas[i][8]) for i in range(len(lineas)) if lineas[i][1]==j]) for j in instancias]
+def instancias_stats(ruta,size):
     nombre = ruta.split("/")[-1]
-    archivo = open("output/Exp2_resumen/"+nombre,"w")
-    for i in range(len(instancias)):
-        #print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
-        print("{} {} {} {} {} {} {} {}".format(instancias[i],minimos[i],avg[i],tiempos[i],mejor_i[i],avg_mejor_i[i],iteracion[i],t_pob[i]),file = archivo)
+    exp = nombre.split("/")[-1].split("_")[-1].split(".")[0]
+    if size == "tsplib":
+        custom_dict = {"gr17":0,"gr21":1,"gr24":2,"fri26":3,"bays29":4,"gr48":5,"eil51":6,"berlin52":7,"eil76":8,"eil101":9}
+        df = pd.read_fwf(ruta,
+                         colspecs=[(0,6),(6,12),(18,30),(30,40),(40,50),(50,60),(60,70),(70,82),(82,94),(94,106)],
+                         header=None)    
+        df = df.groupby(1).agg(Best=(2,"min" ),
+                                Avg = (2,"mean"),
+                                Best_inicial=(5,"min" ),
+                                Poblacion_avg = (6,"mean"),
+                                Tiempo_pob= (8,"mean"),
+                                Time = (4,"mean"),
+                                Total_it= (9,"mean"),
+                                best_iteration= (7,"mean")).reset_index().rename(columns={1:"Instancia"})
+                                
+        df.insert(0, 'Grupo', size)
+        df.insert(0, 'Exp', exp)
+        df = df.sort_values(by =["Instancia"],key=lambda x: x.map(custom_dict))
+    else:
+        df = pd.read_fwf(ruta,
+                    colspecs=[(0,6),(6,12),(14,20),(20,32),(32,44),(44,54),(54,64),(64,74),(74,84),(84,96),(96,108),(108,120)],
+                    header=None)    
+        df = df.groupby(3).agg(Best=(4,"min" ),
+                        Avg = (4,"mean"),
+                        Best_inicial=(7,"min" ),
+                        Poblacion_avg = (7,"mean"),
+                        Tiempo_pob= (8,"mean"),
+                        Time = (6,"mean"),
+                        Total_it= (11,"mean"),
+                        best_iteration= (9,"mean")).reset_index().rename(columns={3:"Instancia"})\
+                        .sort_values("Instancia",ascending=True)
+        df.insert(0, 'Grupo', size)
+        df.insert(0, 'Exp', exp)
 
-ruta ="/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/tsplib/ga_tsplib_irace0.txt"
+    #df.to_csv(f"resultados/{nombre}",sep=";",decimal=",")
+    return df
 
-#Para instancias TSPLIB
-# minimos,avgs,tiempos,mejor_inicial,avg_mejor_inicial,iteracion,t_pob = output_to_list(ruta)
-# agVsMosayebiV2_stats(tiempos,minimos,avgs,mejor_inicial,avg_mejor_inicial,iteracion,t_pob,"La1tex")
-#agVsMosayebiV2_SINGAP(tiempos,minimos,avgs,"Late1x")
+
+
+
+
 
 #Para instancias SMALL, MEDIUM Y LARGE
-for i in ["tsplib"]:#"tsplib"
-    for j in range(1,7):
-        instancias_tsplib_stats(f"/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/Exp2/ga_{i}_AG{j}.txt")
+todo = None
+for i in ["tsplib","small","medium","large"]:#"tsplib"
+    for j in range(7,9):
+        df = instancias_stats(f"/Users/pgutiea/Desktop/TSPJ_git/ga_{i}_AG{j}.txt",i)
+        if todo is None:
+            todo = df
+        else:
+            todo = pd.concat([todo,df])
+todo.to_csv(f"todo.csv",sep=";",decimal=",")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/TSPJ_git/output/small/cluster.txt")
 #instancias_prueba("/Users/pablogutierrezaguirre/Desktop/Proyecto profe carlos/Codigos/nuevas versiones/small_ga_04.txt")

@@ -48,7 +48,7 @@ class MathematicalModel(Problem):
         self.jobs = self.cities.copy()
         self.jobs_arch = [(i,k) for i in self.cities for k in self.cities]
         
-        self.jt_min = self.JT.replace(0,9999999).fillna(9999999).to_numpy().min()
+        self.jt_min = self.JT[self.JT>0].min()
 
     def compute_M(self):
         """
@@ -375,10 +375,11 @@ class MathematicalModel(Problem):
                     vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
                 if len(subruta) > len(ciclo):
                     subruta[:] = ciclo
+        
         initial = time.time()
         n = modelo._n
 
-        if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL ):
+        if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL):
             valoresX = modelo.cbGetNodeRel(modelo._xvars)
             tour = [i for i in range(n+1)]
             subtour_method(tour, valoresX,n)
@@ -394,7 +395,7 @@ class MathematicalModel(Problem):
                 new_lb = MathematicalModel.get_min_job(modelo._JT,solucion)
                 if new_lb > modelo._jt_min:
                     modelo._jt_min = new_lb
-                    print(modelo._jt_min)
+                    #print(modelo._jt_min)
                     modelo.cbLazy(modelo._Cmax >= modelo._jt_min + gp.quicksum(modelo._xvars[i,j]*modelo._TT[i][j] for i in modelo._cities for j in modelo._cities[1:] if i!=j))
                     modelo._callback_count +=1 
 
@@ -434,14 +435,15 @@ class MathematicalModel(Problem):
 
     @staticmethod
     def get_min_job(JT:pd.DataFrame,ja):
-        df = JT.copy().replace(0,99999).fillna(99999)
-        assings = [i[0] for i in ja if i[1]>0.99]
-        for i in assings:
-            df.iloc[i[0]] = 99999
-            df.iloc[i[0],i[1]] = JT.iloc[i[0],i[1]]
+        df = JT.copy()
+        assigns = [i[0] for i in ja if i[1]>0.99]
+        for i in assigns:
+            df.T[i[0]] = 99999
+            df.T[i[0],i[1]] = JT.T[i[0],i[1]]
             df[i[1]] = 99999
             df[i[1]][i[0]] = JT[i[1]][i[0]]
-        return df.to_numpy().min()
+
+        return df[df>0].min()
 
     def add_new_constraint(self):
         """
@@ -471,7 +473,7 @@ class MathematicalModel(Problem):
         Add initial solution to MILP from LKH and NNJA
         """
 
-        self.initial_arch = self.__sort_arch(self.lkh_route)
+        self.initial_arch = MathematicalModel.__sort_arch(self.lkh_route)
         if self.heuristic_jobs is None:
             self.heuristic_jobs = self.NNJA(self.lkh_route[1:],self.JT) 
         self.initial_job_arch = self.sort_jobs(self.lkh_route[1:],self.heuristic_jobs)
@@ -545,5 +547,3 @@ class MathematicalModel(Problem):
         time = round(self.modelo.Runtime,4)
         lower = round(lower,2)
         print("{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}".format(self.size,self.instance,objective,lower,gap,time,dict_status[self.modelo.Status],self.modelo.SolCount,self.modelo.NodeCount,self.modelo._callback_count,self.modelo._callback_time))
-
-

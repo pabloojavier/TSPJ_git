@@ -8,7 +8,7 @@ import lkh
 import sys
 import warnings
 import networkx as nx
-from typing import Dict, List, Callable, Any
+from typing import Dict, List, Callable, Any,Tuple
 warnings.filterwarnings("ignore")
 
 path = "Codigos/"
@@ -25,21 +25,19 @@ class Problem:
     def __parameters(self):
         if self.size == "tsplib":
             location = self.path+"Data/instancias_paper/"+self.instance+".xlsx"
-            self.TT = pd.read_excel(location,sheet_name="TT",index_col=0)
-            self.JT = pd.read_excel(location,sheet_name="JT",index_col=0)
-            self.n = len(list(self.JT.loc[0].dropna()))
+            self.TT = pd.read_excel(location,sheet_name="TT",index_col=0).fillna(0).to_numpy()
+            self.JT = pd.read_excel(location,sheet_name="JT",index_col=0).fillna(0).T.to_numpy()
 
         elif self.size in ("small","medium","large"):
             location = self.path+"Data/"+str(self.size)+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size[0]
-            self.TT = pd.read_csv(location+"_cost_table_by_coordinates.csv",index_col= None, header = None)
-            self.JT = pd.read_csv(location+"_tasktime_table.csv",index_col= None, header = None)
-            self.n = len(list(self.JT.index.values))
+            self.TT = pd.read_csv(location+"_cost_table_by_coordinates.csv",index_col= None, header = None).fillna(0).to_numpy()
+            self.JT = pd.read_csv(location+"_tasktime_table.csv"           ,index_col= None, header = None).fillna(0).T.to_numpy()
 
         else:
-            self.TT = pd.read_csv(f"{self.path}Data/test/1_TT_paper.csv",index_col= None, header = None)
-            self.JT = pd.read_csv(f"{self.path}Data/test/1_JT_paper.csv",index_col= None, header = None)
-            self.n = len(list(self.JT.index.values))
+            self.TT = pd.read_csv(f"{self.path}Data/test/1_TT_paper.csv",index_col= None, header = None).fillna(0).to_numpy()
+            self.JT = pd.read_csv(f"{self.path}Data/test/1_JT_paper.csv",index_col= None, header = None).fillna(0).T.to_numpy()
 
+        self.n = len(self.TT)
         self.cities = [i for i in range(self.n)]
         self.arch = [(i,j) for i in self.cities for j in self.cities if i !=j]
 
@@ -86,7 +84,7 @@ class Problem:
     def get_lkh_route(self):
         return self.lkh_route
     
-    def fitness_functions(self,solution:Callable[[List,List],float]):
+    def fitness_functions(self,solution:Tuple[List,List]):
         """
         Get the objective function of *solution*
         """

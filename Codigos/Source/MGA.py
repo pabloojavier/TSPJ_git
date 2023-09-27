@@ -409,55 +409,38 @@ class MGA(Problem):
         n = len(ciudad)
         suma_ac = [self.TT[0][ciudad[0]]]
         suma = suma_ac[-1]
-        maxtime = suma_ac[-1]+self.JT[trabajo[0]][ciudad[0]] 
-        cmax_antiguo = 0
-        cmax2_antiguo = 0
-        best_i = 0
+        makespan = suma_ac[-1]+self.JT[trabajo[0]][ciudad[0]] 
+        cmax1 = makespan
+        cmax2 = 0
+        i1 = 0
         i2 = 0
         i = 0
         while i < n - 1:
             suma += self.TT[ciudad[i]][ciudad[i + 1]]
             suma_ac.append(suma)
-            maxtime = suma_ac[-1] + self.JT[trabajo[i+1]][ciudad[i+1]]
-            if maxtime > cmax_antiguo:
-                cmax2_antiguo = cmax_antiguo
-                i2 = best_i
-                cmax_antiguo = maxtime
-                best_i = i+1
-            elif maxtime > cmax2_antiguo:
-                cmax2_antiguo = maxtime
+            makespan = suma_ac[-1] + self.JT[trabajo[i+1]][ciudad[i+1]]
+            if makespan > cmax1:
+                cmax2 = cmax1
+                cmax1 = makespan
+                i2 = i
+                i1 = i+1
+            elif makespan > cmax2:
+                cmax2 = makespan
                 i2 = i
             i += 1
 
         suma += self.TT[ciudad[-1]][0]
         suma_ac.append(suma)
-        if suma_ac[-1]>cmax_antiguo:
-            cmax2_antiguo = cmax_antiguo
-            i2 = best_i
-            best_i = n
-            cmax1 = suma_ac[-1]
-        
-        aux = -1
-        for i in range(len(trabajo)):
-            if i != best_i:
-                cmax1_nuevo = suma_ac[best_i] + self.JT[trabajo[i]][ciudad[best_i]]
-                cambio2 = suma_ac[i] + self.JT[trabajo[i]][ciudad[i]]
-                if cmax1_nuevo < cmax_antiguo:
-                    if cmax1_nuevo > cambio2:
-                        if cmax1_nuevo < cmax2_antiguo: 
-                            trabajo[best_i],trabajo[i] = trabajo[i],trabajo[best_i]
-                            break
-                        else:
-                            trabajo[best_i],trabajo[i] = trabajo[i],trabajo[best_i]
-                            aux = cmax1_nuevo
-                            break
-                    else: #cmax nuevo mayor o igual al segundo mas grande 
-                        if cambio2>cmax2_antiguo:
-                            trabajo[best_i],trabajo[i] = trabajo[i],trabajo[best_i]
-                            break
-                        else:
-                            trabajo[best_i],trabajo[i] = trabajo[i],trabajo[best_i]
-                            break
+        if suma_ac[-1]>cmax1:
+            return
+
+        for i in range(n):
+            if i != i1:
+                cambio_i1 = suma_ac[i1] + self.JT[trabajo[i]][ciudad[i1]]
+                cambio_i = suma_ac[i] + self.JT[trabajo[i1]][ciudad[i]]
+                if cambio_i1 < cmax1 and cambio_i < cmax1:
+                    trabajo[i1],trabajo[i] = trabajo[i],trabajo[i1]
+                    return
 
     def mutSet(self,city,jobs):
         value2 = random.uniform(0,1)
