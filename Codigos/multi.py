@@ -2,13 +2,17 @@ import itertools
 import os
 import multiprocessing
 import time
+import sys
 
 
-
-path = "Codigos/"
+if os.getcwd().split("/")[-1] != "Codigos":
+    path = "Codigos/"
+else:
+    path = ""
+    
 inicio = time.time()
 def launcherMGA(seed,size,_instancia,**kwargs):
-    ejecutar = f"/usr/local/bin/python3 {path}ga_05.py -seed {seed} -size {size} -i {_instancia}"
+    ejecutar = f"/usr/local/bin/python3 {path}MGA_poo.py -seed {seed} -size {size} -i {_instancia}"
     for key,value in kwargs.items():
         ejecutar += f"-{key} {value} "
     os.system(ejecutar)
@@ -17,7 +21,7 @@ def launcherMILP(size,instance,subtour,solin,output,callback,bounds):
     os.system(f"/usr/local/bin/python3 {path}MM_poo.py -size {size} -instance {instance} -subtour {subtour} -initialsol {solin} -output {output} -callback {callback} -bounds {bounds}")
 
 #Valores por defecto
-paralelo = "paralelo"
+paralelo = "parallel"
 size = "tsplib"
 alg = "gurobi"
 subtour = "subtourelim"
@@ -31,9 +35,9 @@ instance_dict = {"tsplib":tsplib,
                  "large":sml_instance}
 
 
-argv = ["-p","secuential","-size","tsplib","-alg","gurobi","-subtour","GG","-initialsol","True", "-callback","None","-bounds","False"]
+#argv = ["-p","parallel","-size","tsplib","-alg","gurobi","-subtour","GG","-initialsol","True", "-callback","None","-bounds","False"]
+argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
-
 if len(opts)<3:
     print("multi.py -p <parallel/secuential> -size <tsplib/small/medium/large/all> -alg <ag/gurobi> -subtour <wc/gg/mtz/dl> -initialsol <True/False> -callback <*callbacklist*> -bounds <True/False>"  )
     exit(0)
@@ -108,7 +112,7 @@ if alg == "gurobi" and (subtour not in ("wc","gg","mtz","dl")) :
 if __name__ == "__main__":
     seed = [i for i in range(10)]
     pool = multiprocessing.Pool(processes=max(1, multiprocessing.cpu_count()-2))
-
+    print(f"Running with parameters: {opts} ")
     if alg == "mga":
         print("{:<6}{:<8}{:<12}{:<12}{:<10}{:<10}{:<10}{:<10}{:<12}{:<12}".format("seed","size","instance","mejor","pob","time","mejor_initi","pob_i","mejor_iter","t_pob"))
         for _instancia,_seed in itertools.product(instance_dict[size],seed):

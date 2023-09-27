@@ -6,3 +6,11 @@
 ouput
 Codigos/.DS_Store
 Codigos/deprecated
+*.Ds_Store
+*.DS_Store
+Codigos/Source/__py_cache__
+*.txt
+Codigos/Data/.DS_Store
+Codigos/.DS_Store
+.DS_Store
+*.pyc

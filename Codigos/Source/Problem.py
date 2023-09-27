@@ -11,7 +11,11 @@ import networkx as nx
 from typing import Dict, List, Callable, Any,Tuple
 warnings.filterwarnings("ignore")
 
-path = "Codigos/"
+if os.getcwd().split("/")[-1] != "Codigos":
+    path = "Codigos/"
+else:
+    path = ""
+
 class Problem:
     def __init__(self,size,instance):
         self.size = size.lower()
@@ -53,15 +57,16 @@ class Problem:
         lines[-1][0] = lines[-1][0].replace(","," ")
         lines[-1][0] = lines[-1][0][:-1] +" "+str(10000000)
         
-        data = open(self.path+self.size+"_"+str(self.batch)+"_"+str(self.instance)+".txt","w")
-        data.write("NAME: prueba"+str(self.n)+"\n")
-        data.write("TYPE: TSP\n")
-        data.write(f"COMMENT: {self.n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n")
-        data.write(f"DIMENSION: {self.n}\n")
-        data.write(f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n")
+        problem_str = ""
+        problem_str = "NAME: prueba"+str(self.n)+"\n"
+        problem_str += "TYPE: TSP\n"
+        problem_str += f"COMMENT: {self.n} cities in Bavaria, street distances (Groetschel,Juenger,Reinelt)\n"
+        problem_str += f"DIMENSION: {self.n}\n"
+        problem_str += f"EDGE_WEIGHT_TYPE: EXPLICIT\nEDGE_WEIGHT_FORMAT: FULL_MATRIX\nDISPLAY_DATA_TYPE: TWOD_DISPLAY\nEDGE_WEIGHT_SECTION\n"
         for i in lines:
-            data.write(i[0]+"\n")
-        data.close()
+            problem_str += i[0]+"\n"
+        return problem_str
+
 
     def __solve_lkh(self):
         if self.size in ("small","medium","large"):
@@ -71,11 +76,8 @@ class Problem:
         else:
             self.lkh_route = [i for i in range(self.n)]
             return
-        self.__transform_txt(instance_location)
-        
-        problem = tsplib95.load(self.path+self.size+"_"+str(self.batch)+"_"+str(self.instance)+".txt")
-        os.remove(self.path+self.size+"_"+str(self.batch)+"_"+str(self.instance)+".txt")
 
+        problem = tsplib95.parse(self.__transform_txt(instance_location))
         solver_path = self.path+'LKH-3.0.7/LKH'
 
         ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
@@ -108,3 +110,4 @@ class Problem:
         if suma_ac[-1]>cmax:
             cmax = suma_ac[-1]
         return cmax,
+
