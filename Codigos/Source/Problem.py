@@ -81,7 +81,7 @@ class Problem:
         solver_path = self.path+'LKH-3.0.7/LKH'
 
         ciudad = lkh.solve(solver_path, problem=problem, max_trials=10000, runs=1)[0]
-        self.lkh_route =  [i-1 for i in ciudad if i != 1]
+        self.lkh_route =  [i-1 for i in ciudad]
 
     def get_lkh_route(self):
         return self.lkh_route
