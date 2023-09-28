@@ -18,8 +18,8 @@ else:
 
 class Problem:
     def __init__(self,size,instance):
-        self.size = size.lower()
-        self.instance = instance
+        self.size :str = size.lower()
+        self.instance : str = instance
         self.batch = (int(self.instance)-1)//25+1 if self.size != "tsplib" else ""
         
         self.path = path
@@ -28,12 +28,12 @@ class Problem:
         
     def __parameters(self):
         if self.size == "tsplib":
-            location = self.path+"Data/instancias_paper/"+self.instance+".xlsx"
-            self.TT = pd.read_excel(location,sheet_name="TT",index_col=0).fillna(0).to_numpy()
-            self.JT = pd.read_excel(location,sheet_name="JT",index_col=0).fillna(0).T.to_numpy()
+            location = self.path+"Data/Tsplib_problems/"
+            self.TT = pd.read_csv(location+"TT_"+self.instance+".csv",index_col= None, header = None).fillna(0).to_numpy()
+            self.JT = pd.read_csv(location+"JT_"+self.instance+".csv",index_col= None, header = None).fillna(0).T.to_numpy()
 
         elif self.size in ("small","medium","large"):
-            location = self.path+"Data/"+str(self.size)+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size[0]
+            location = self.path+"Data/"+str(self.size.capitalize())+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size.capitalize()[0]
             self.TT = pd.read_csv(location+"_cost_table_by_coordinates.csv",index_col= None, header = None).fillna(0).to_numpy()
             self.JT = pd.read_csv(location+"_tasktime_table.csv"           ,index_col= None, header = None).fillna(0).T.to_numpy()
 
@@ -70,7 +70,7 @@ class Problem:
 
     def __solve_lkh(self):
         if self.size in ("small","medium","large"):
-            instance_location = self.path+"Data/"+str(self.size)+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size[0]+"_cost_table_by_coordinates.csv"
+            instance_location = self.path+"Data/"+str(self.size.capitalize())+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size.capitalize()[0]+"_cost_table_by_coordinates.csv"
         elif self.size == "tsplib":
             instance_location = self.path+f"Data/Tsplib_problems/TT_{self.instance}.csv"
         else:
