@@ -2,12 +2,14 @@ import gurobipy as gp
 from gurobipy import GRB
 import pandas as pd
 import numpy as np
+import numpy.typing as npt
 import warnings
 import networkx as nx
 from typing import Dict, List, Callable, Any
 from Source.Problem import Problem 
-#from Problem import Problem 
 import time
+import re
+import math
 warnings.filterwarnings("ignore")
 
 class MathematicalModel(Problem):
@@ -16,8 +18,10 @@ class MathematicalModel(Problem):
                  output = False,
                  subtour : str = "GG",
                  initial_solution : bool = True,
-                 callback : Callable = "None",
-                 bounds: bool = True
+                 callback : str = "None",
+                 bounds: bool = True,
+                 new_formulation: bool = False,
+                 time_limit : int = 1800
                  ):
         """
         Initialize mathematical model with some default values
@@ -31,18 +35,20 @@ class MathematicalModel(Problem):
         super().__init__(size,instance)
         self.size = size
         self.output = output
-        self.subtour = subtour
+        self.subtour = subtour.lower()
         self.initial_solution = initial_solution
-        self.callback = callback
+        self.callback = callback.lower()
         self.bounds = bounds
-        self.time_limit = 1800
-        self.callback_dict = {"CUT_integer_separation":MathematicalModel.CUT_integer_separation,
-                              "CUT_naive_fractional_separation":MathematicalModel.CUT_naive_fractional_separation,
-                              "CUT_smarter_fractional_separation":MathematicalModel.CUT_smarter_fractional_separation,
-                              "DFJ_integer_separation":MathematicalModel.DFJ_integer_separation,
-                              "DFJ_naive_fractional_separation":MathematicalModel.DFJ_naive_fractional_separation,
-                              "DFJ_smarter_fractional_separation":MathematicalModel.DFJ_smarter_fractional_separation,
-                              "subtourelim":MathematicalModel.subtourelim}
+        self.time_limit = time_limit
+        self.new_formulation = new_formulation
+        self.callback_dict = {"cut_integer_separation":MathematicalModel.CUT_integer_separation,
+                              "cut_naive_fractional_separation":MathematicalModel.CUT_naive_fractional_separation,
+                              "cut_smarter_fractional_separation":MathematicalModel.CUT_smarter_fractional_separation,
+                              "dfj_integer_separation":MathematicalModel.DFJ_integer_separation,
+                              "dfj_naive_fractional_separation":MathematicalModel.DFJ_naive_fractional_separation,
+                              "dfj_smarter_fractional_separation":MathematicalModel.DFJ_smarter_fractional_separation,
+                              "subtourelim1":MathematicalModel.subtourelim1,
+                              "subtourelim2":MathematicalModel.subtourelim2}
 
         self.compute_M()
         self.jobs = self.cities.copy()
@@ -62,8 +68,8 @@ class MathematicalModel(Problem):
                 if i!=j and self.TT[i][j]>max_t:
                     max_t = self.TT[i][j]
                 
-                if j!= 0 and self.JT[j][i]>max_tt:
-                    max_tt = self.JT[j][i]
+                if j!= 0 and self.JT[i][j]>max_tt:
+                    max_tt = self.JT[i][j]
             self.M += max_t #+max_tt
 
     def create_base_model(self):
@@ -81,6 +87,7 @@ class MathematicalModel(Problem):
         self.z = self.modelo.addVars(self.jobs_arch, vtype=GRB.BINARY, name='z')
 
         self.TS = self.modelo.addVars(self.cities,vtype=GRB.CONTINUOUS,name="TS")
+        self.t = self.modelo.addVars(self.arch,vtype=GRB.CONTINUOUS,name="t") # new variable for the time
 
         self.modelo.setObjective(self.Cmax, GRB.MINIMIZE)
 
@@ -90,12 +97,58 @@ class MathematicalModel(Problem):
         self.modelo.addConstrs(self.x.sum(i,'*') == 1 for i in self.cities) # Outgoing
         self.modelo.addConstrs(self.x.sum('*', j) == 1 for j in self.cities) # Incoming 
 
-        #Restricciones
+        for k in self.jobs[1:self.n]:
+            self.modelo.addConstr(gp.quicksum(self.z[(i,k)] for i in self.cities if i != 0) == 1)
+
+        for i in self.cities[1:self.n]: 
+            self.modelo.addConstr(gp.quicksum(self.z[(i,k)] for k in self.jobs if k != 0) == 1)
+        
         for i in self.cities[1:self.n]:
-            self.modelo.addConstr(self.Cmax >= self.TS[i] + gp.quicksum(self.z[(i,k)]*self.JT[k][i] for k in self.jobs if k!=0 ))
+            self.modelo.addConstr(self.Cmax >= self.TS[i] + gp.quicksum(self.z[(i,k)]*self.JT[i][k] for k in self.jobs if k!=0 ))
 
         for i in self.cities[1:self.n]:
-            self.modelo.addConstr(self.Cmax >= self.TS[i] + self.x[(i,0)]*self.TT[0][i])
+            self.modelo.addConstr(self.Cmax >= self.TS[i] + self.x[(i,0)]*self.TT[i][0])
+        
+
+        for i in self.cities: #16
+            for j in self.cities[1:self.n]:
+                if i!=j:
+                    self.modelo.addConstr(self.TS[i] + self.TT[i][j] - (1-self.x[(i,j)])*self.M <= self.TS[j])
+
+        
+        self.modelo.Params.Threads = 1
+        self.modelo.Params.TimeLimit = self.time_limit
+        self.modelo._callback_time = 0
+        self.modelo.update()
+
+    def create_new_formulation(self):
+        """
+        Create the initial new formulation MILP, whithout any additional constraint.
+        """
+        env = gp.Env(empty=True)
+        env.setParam('OutputFlag', 1 if self.output else 0)
+        env.start()
+        self.modelo = gp.Model(env=env)
+
+        self.Cmax = self.modelo.addVar(vtype=GRB.CONTINUOUS,name="Cmax")
+
+        self.x = self.modelo.addVars(self.arch, vtype=GRB.BINARY, name='x')
+        self.z = self.modelo.addVars(self.jobs_arch, vtype=GRB.BINARY, name='z')
+
+        self.t = self.modelo.addVars(self.arch,vtype=GRB.CONTINUOUS,name="t") # new variable for the time
+
+        self.modelo.setObjective(self.Cmax, GRB.MINIMIZE)
+
+        #Restricción adicional de reforzamiento
+        self.modelo.addConstr(self.Cmax >= self.jt_min + gp.quicksum(self.x[(i,j)]*self.TT[i][j] for i in self.cities for j in self.cities[1:] if i!=j))
+        
+        for i in self.cities[1:self.n]:
+            self.modelo.addConstr(self.Cmax >= gp.quicksum(self.t[(i,k)] for k in self.cities if i != k) 
+                                             + gp.quicksum(self.z[(i,k)]*self.JT[i][k] for k in self.jobs if k!=0 ))
+
+        for i in self.cities[1:self.n]:
+            self.modelo.addConstr(self.Cmax >= gp.quicksum(self.t[(i,k)] for k in self.cities if i != k) 
+                                             + self.x[(i,0)]*self.TT[0][i])
 
         for k in self.jobs[1:self.n]:
             self.modelo.addConstr(gp.quicksum(self.z[(i,k)] for i in self.cities if i != 0) == 1)
@@ -103,12 +156,22 @@ class MathematicalModel(Problem):
         for i in self.cities[1:self.n]: 
             self.modelo.addConstr(gp.quicksum(self.z[(i,k)] for k in self.jobs if k != 0) == 1)
         
+        self.modelo.addConstrs(self.x.sum(i,'*') == 1 for i in self.cities) # Outgoing
+        self.modelo.addConstrs(self.x.sum('*', j) == 1 for j in self.cities) # Incoming 
+        
 
-        for i in self.cities: #16
-            for j in self.cities[1:self.n]:
-                if i!=j:
-                    self.modelo.addConstr(self.TS[i] + self.TT[j][i] - (1-self.x[(i,j)])*self.M <= self.TS[j])
+        for k in self.cities[1:self.n]: #16
+            self.modelo.addConstr(gp.quicksum(self.t[(i,k)] for i in self.cities if i != k) 
+                                + gp.quicksum(self.TT[k][i]*self.x[(i,k)] for i in self.cities if i != k)
+                                <= gp.quicksum(self.t[(k,l)] for l in self.cities if k != l) )
 
+        #parte desde 1, el primer nodo no tiene tiempo
+        for i in self.cities[1:]:
+            LB = np.min(self.TT[i][np.nonzero(self.TT[i])])
+            for k in self.cities:
+                if i != k:
+                    self.modelo.addConstr(self.t[(i,k)] <= self.M*self.x[(i,k)])
+                    self.modelo.addConstr(self.t[(i,k)] >= LB*self.x[(i,k)])
         
         self.modelo.Params.Threads = 1
         self.modelo.Params.TimeLimit = self.time_limit
@@ -119,7 +182,7 @@ class MathematicalModel(Problem):
         """
         Adds subtour constraints, it can be GG, MTZ or DL constraint
         """
-        if self.subtour == "GG":
+        if self.subtour == "gg":
             self.y = self.modelo.addVars(self.arch,name = "y") 
             for i in self.cities[1:self.n]: #14
                 self.modelo.addConstr(gp.quicksum(self.y[(i,j)] for j in self.cities if i !=j) - gp.quicksum(self.y[(j,i)] for j in self.cities if i !=j) == 1)
@@ -129,14 +192,14 @@ class MathematicalModel(Problem):
                     if i!=j:
                         self.modelo.addConstr(self.y[(i,j)]<= self.n*self.x[(i,j)])
             
-        elif self.subtour in ("MTZ","DL"):
+        elif self.subtour in ("mtz","dl"):
             self.u = self.modelo.addVars(self.cities , vtype = GRB.CONTINUOUS , name = "u")
-            if self.subtour == "MTZ":    
+            if self.subtour == "mtz":    
                 for i,j in self.arch:
                     if i>0:
                         self.modelo.addConstr(self.u[i] - self.u[j] + 1 <= self.M * (1 - self.x[(i,j)]) , "MTZ(%s,%s)" %(i, j))
             
-            elif self.subtour == "DL":
+            elif self.subtour == "dl":
                 for i in range(1,self.n):
                     self.modelo.addConstr(self.u[i] >= 1 + (self.n-3)*self.x[(i,0)] + gp.quicksum(self.x[(j,i)] for j in self.cities[1:] if j != i))
 
@@ -360,29 +423,46 @@ class MathematicalModel(Problem):
                     return
 
     @staticmethod
-    def subtourelim(modelo:gp.Model, donde):
-        def subtour_method(subruta, vals,n):
-            # obtener una lista con los arcos parte de la solucións
-            arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
-            noVisitados = list(range(n))
-            while noVisitados: # true if list is non-empty
-                ciclo = []
-                vecinos = noVisitados
-                while vecinos:
-                    actual = vecinos[0]
-                    ciclo.append(actual)
-                    noVisitados.remove(actual)
-                    vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
-                if len(subruta) > len(ciclo):
-                    subruta[:] = ciclo
-        
+    def subtour_method(subruta, vals,n):
+        # obtener una lista con los arcos parte de la solucións
+        arcos = gp.tuplelist((i, j) for i, j in vals.keys() if vals[i, j] > 0.5)
+        noVisitados = list(range(n))
+        while noVisitados: # true if list is non-empty
+            ciclo = []
+            vecinos = noVisitados
+            while vecinos:
+                actual = vecinos[0]
+                ciclo.append(actual)
+                noVisitados.remove(actual)
+                vecinos = [j for i, j in arcos.select(actual, '*') if j in noVisitados]
+            if len(subruta) > len(ciclo):
+                subruta[:] = ciclo
+    
+    @staticmethod
+    def subtourelim1(modelo:gp.Model, donde):
         initial = time.time()
         n = modelo._n
 
         if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL):
             valoresX = modelo.cbGetNodeRel(modelo._xvars)
             tour = [i for i in range(n+1)]
-            subtour_method(tour, valoresX,n)
+            MathematicalModel.subtour_method(tour, valoresX,n)
+            if len(tour) < n:
+                modelo._callback_count +=1 
+                tour2 = [i for i in range(n) if i not in tour]
+                modelo.cbLazy(gp.quicksum(modelo._xvars[i, j] for i in tour for j in tour2) >= 1)
+
+        modelo._callback_time += time.time()-initial
+
+    @staticmethod
+    def subtourelim2(modelo:gp.Model, donde):        
+        initial = time.time()
+        n = modelo._n
+
+        if donde == GRB.Callback.MIPNODE  and ( modelo.cbGet(GRB.Callback.MIPNODE_STATUS) == GRB.OPTIMAL):
+            valoresX = modelo.cbGetNodeRel(modelo._xvars)
+            tour = [i for i in range(n+1)]
+            MathematicalModel.subtour_method(tour, valoresX,n)
             if len(tour) < n:
                 modelo._callback_count +=1 
                 tour2 = [i for i in range(n) if i not in tour]
@@ -399,8 +479,8 @@ class MathematicalModel(Problem):
                     modelo.cbLazy(modelo._Cmax >= modelo._jt_min + gp.quicksum(modelo._xvars[i,j]*modelo._TT[i][j] for i in modelo._cities for j in modelo._cities[1:] if i!=j))
                     modelo._callback_count +=1 
 
-        modelo._callback_time += time.time()-initial
-        
+        modelo._callback_time += time.time()-initial    
+    
     @staticmethod
     def __sort_arch(route):
         """
@@ -423,7 +503,7 @@ class MathematicalModel(Problem):
         n = len(route)  
         cont = len(route)-1
         while len(job)<n:
-            times = {(i,route[cont]):JT[i][route[cont]] for i in range(1,n+1)}
+            times = {(i,route[cont]):JT[route[cont]][i] for i in range(1,n+1)}
             new = min(times.items(),key=lambda x:x[1]) 
             job.append(new[0][1])
             cont -= 1
@@ -434,14 +514,19 @@ class MathematicalModel(Problem):
         return [(route[i],jobs[i]) for i in range(len(route))]
 
     @staticmethod
-    def get_min_job(JT:pd.DataFrame,ja):
+    def get_min_job(JT:np.ndarray,ja):
+        JT = JT.T
         df = JT.copy()
+        # print(ja)
         assigns = [i[0] for i in ja if i[1]>0.99]
+        np.set_printoptions(linewidth=160)
         for i in assigns:
-            df.T[i[0]] = 99999
-            df.T[i[0],i[1]] = JT.T[i[0],i[1]]
+            df[:,i[0]] = 99999
+            df[i[1],i[0]] = JT[i[1]][i[0]]
+        
+        for i in assigns:
             df[i[1]] = 99999
-            df[i[1]][i[0]] = JT[i[1]][i[0]]
+            df[i[1],i[0]] = JT[i[1]][i[0]]
 
         return df[df>0].min()
 
@@ -449,24 +534,35 @@ class MathematicalModel(Problem):
         """
         Add new constraints, builts in this work.
         """
-        if self.bounds:
-            self.heuristic_jobs = self.NNJA(self.lkh_route[1:],self.JT)
-            
-            costo_inicial = self.fitness_functions([self.lkh_route[1:],self.heuristic_jobs])[0]
-            menor_arco_depot = min(self.TT[0][i] for i in range(1,self.n))
+        
+        self.heuristic_jobs = self.NNJA(self.lkh_route[1:],self.JT)
+        
+        costo_inicial = self.fitness_functions([self.lkh_route[1:],self.heuristic_jobs])[0]
+        menor_arco_depot = min(self.TT[0][i] for i in range(1,self.n))
 
-            #Cota superior tiempo de inicio
+        if hasattr(self,'TS'):
             for i in self.cities:
                 self.modelo.addConstr(self.TS[i]<=costo_inicial)
 
-            #Cota inferior tiempo de inicio
             for i in range(1,self.n):
                 self.modelo.addConstr(self.TS[i]>=menor_arco_depot) 
+        
+        elif hasattr(self,'t'):
+            for i in self.cities:
+                for j in self.cities:
+                    if i!=j:
+                        self.modelo.addConstr(self.t[(i,j)]<=costo_inicial)
 
-            #Cota superior de solucion inicial (lkh+NNJ)
-            self.modelo.addConstr(self.Cmax<=costo_inicial)
+            # for i in self.cities:
+            #     LB = np.min(self.TT[i][np.nonzero(self.TT[i])])
+            #     for j in self.cities:
+            #         if i!=j and i*j > 0:
+            #             self.modelo.addConstr(self.t[(i,j)]>=LB)
             
-            self.modelo.update()
+
+        # Cota superior de solucion inicial (lkh+NNJ)
+        self.modelo.addConstr(self.Cmax<=costo_inicial)
+        self.modelo.update()
 
     def add_initial_solution(self):
         """
@@ -496,11 +592,11 @@ class MathematicalModel(Problem):
         self.modelo.update()
 
     def optimize(self):
-        if self.callback == "None":
+        if self.callback == "none":
             self.modelo._callback_count = 0
             self.modelo._callback_time = 0
             self.modelo.optimize()
-        else:
+        elif self.callback in self.callback_dict.keys():
             self.modelo.Params.LazyConstraints = 1
             self.modelo._xvars = self.x
             self.modelo._zvars = self.z
@@ -515,14 +611,34 @@ class MathematicalModel(Problem):
             self.modelo._epsilon = 0.00001
             self.modelo._DG = nx.DiGraph(nx.complete_graph(self.n))
             self.modelo.optimize(self.callback_dict[self.callback])
+        else:
+            raise Exception(f"Callback {self.callback} not found")
 
     def run(self):
-        self.create_base_model()
+        self.create_new_formulation() if self.new_formulation else self.create_base_model()
         self.add_subtour_constraint()
-        self.add_new_constraint()
+        if self.bounds:
+            self.add_new_constraint()
+        
         if self.initial_solution:
             self.add_initial_solution()
+        
         self.optimize()
+        self.modelo.update()
+
+        # dict_values = {}
+        # for v in self.modelo.getVars():
+        #     if v.VarName[0] in ("z"):
+                
+        #         if v.X > 0.5:
+        #             match = re.search(r'\[(\d+),(\d+)\]', v.VarName)
+        #             number1 = int(match.group(1))
+        #             number2 = int(match.group(2))
+        #             #if number1 == 0 and number2 == 15:
+        #             dict_values[v.VarName] = math.ceil(v.X)
+        
+        # for i in sorted(dict_values, key=dict_values.get):
+        #     print(i,dict_values[i])
 
     def print_results(self):
         dict_status = {1: 'LOADED', 2: 'OPTIMAL', 3: 'INFEASIBLE', 4: 'INF_OR_UNBD', 5: 'UNBOUNDED', 6: 'CUTOFF', 7: 'ITERATION_LIMIT', 8: 'NODE_LIMIT', 9: 'TIME_LIMIT', 10: 'SOLUTION_LIMIT', 11: 'INTERRUPTED', 12: 'NUMERIC', 13: 'SUBOPTIMAL', 14: 'INPROGRESS', 15: 'USER_OBJ_LIMIT'}

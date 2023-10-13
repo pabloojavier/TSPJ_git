@@ -30,16 +30,17 @@ class Problem:
         if self.size == "tsplib":
             location = self.path+"Data/Tsplib_problems/"
             self.TT = pd.read_csv(location+"TT_"+self.instance+".csv",index_col= None, header = None).fillna(0).to_numpy()
-            self.JT = pd.read_csv(location+"JT_"+self.instance+".csv",index_col= None, header = None).fillna(0).T.to_numpy()
+            self.JT = pd.read_csv(location+"JT_"+self.instance+".csv",index_col= None, header = None).fillna(0).to_numpy()
 
         elif self.size in ("small","medium","large"):
             location = self.path+"Data/"+str(self.size.capitalize())+"_problems/Batch_0"+str(self.batch)+"/TSPJ_"+str(self.instance)+self.size.capitalize()[0]
             self.TT = pd.read_csv(location+"_cost_table_by_coordinates.csv",index_col= None, header = None).fillna(0).to_numpy()
-            self.JT = pd.read_csv(location+"_tasktime_table.csv"           ,index_col= None, header = None).fillna(0).T.to_numpy()
+            self.JT = pd.read_csv(location+"_tasktime_table.csv"           ,index_col= None, header = None).fillna(0).to_numpy()
 
         else:
+            warnings.warn("Size problem has not been specified, using test problem")
             self.TT = pd.read_csv(f"{self.path}Data/test/1_TT_paper.csv",index_col= None, header = None).fillna(0).to_numpy()
-            self.JT = pd.read_csv(f"{self.path}Data/test/1_JT_paper.csv",index_col= None, header = None).fillna(0).T.to_numpy()
+            self.JT = pd.read_csv(f"{self.path}Data/test/1_JT_paper.csv",index_col= None, header = None).fillna(0).to_numpy()
 
         self.n = len(self.TT)
         self.cities = [i for i in range(self.n)]
@@ -95,13 +96,13 @@ class Problem:
         n = len(ciudad)
         suma_ac = [self.TT[0][ciudad[0]]]
         suma = suma_ac[-1]
-        maxtime = suma_ac[-1]+self.JT[trabajo[0]][ciudad[0]] 
+        maxtime = suma_ac[-1]+self.JT[ciudad[0]][trabajo[0]]
         cmax = 0
         i = 0
         while i < n -1:
             suma += self.TT[ciudad[i]][ciudad[i + 1]]
             suma_ac.append(suma)
-            maxtime = suma_ac[-1] + self.JT[trabajo[i+1]][ciudad[i+1]]
+            maxtime = suma_ac[-1] + self.JT[ciudad[i+1]][trabajo[i+1]]
             if maxtime > cmax:
                 cmax = maxtime
             i += 1

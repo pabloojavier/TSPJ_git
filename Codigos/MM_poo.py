@@ -13,11 +13,13 @@ opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
 size = "tsplib"
 instance = "gr17"
-callback = "subtourelim"
+callback = "subtourelim1"
 bounds = True
-subtour = "WC"
+subtour = "wc"
 output = True
 initial_sol = True
+new_formulation = False
+time_limit = 1800
 
 for i in range(len(opts)):
     if opts[i][0][1:] == "size":  size  = opts[i][1]
@@ -26,18 +28,22 @@ for i in range(len(opts)):
             instance = int(opts[i][1])  
         except ValueError:
             instance = opts[i][1]  
-    elif   opts[i][0][1:] == "initial_sol": initial_sol = False if opts[i][1] == "False" else True
-    elif   opts[i][0][1:] == "output": output =  False if opts[i][1] == "False" else True
-    elif   opts[i][0][1:] == "bounds": bounds = False if opts[i][1] == "False" else True
+    elif   opts[i][0][1:] == "initial_sol": initial_sol = False if opts[i][1].lower() == "false" else True
+    elif   opts[i][0][1:] == "output": output =  False if opts[i][1].lower() == "false" else True
+    elif   opts[i][0][1:] == "bounds": bounds = False if opts[i][1].lower() == "false" else True
     elif   opts[i][0][1:] == "subtour": subtour = opts[i][1]
     elif   opts[i][0][1:] == "callback": callback = opts[i][1]
+    elif   opts[i][0][1:] == "newformulation": new_formulation =  False if opts[i][1].lower() == "false" else True
 
-MM = MILP(size,instance)
-MM.callback = callback
-MM.bounds = bounds
-MM.subtour = subtour
-MM.output = output
-MM.initial_solution = initial_sol
-MM.time_limit = 1800
+MM = MILP(size,
+          instance,
+          output,
+          subtour,
+          initial_sol,
+          callback,
+          bounds,
+          new_formulation,
+          time_limit
+          )
 MM.run()
 MM.print_results()
