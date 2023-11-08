@@ -20,7 +20,7 @@ class Problem:
     def __init__(self,size,instance):
         self.size :str = size.lower()
         self.instance : str = instance
-        self.batch = (int(self.instance)-1)//25+1 if self.size != "tsplib" else ""
+        self.batch = (int(self.instance)-1)//25+1 if self.size in ["small","medium","large"] else ""
         
         self.path = path
         self.__parameters()

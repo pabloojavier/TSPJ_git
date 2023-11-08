@@ -57,7 +57,7 @@ def set_parameters(argv):
         raise ValueError("Error, falta un parametro o valor")
 
     for i in range(len(opts)):
-        if opts[i][0][1:] == "p": paralelo = opts[i][1].lower()
+        if opts[i][0][1:] == "p": paralelo = str(opts[i][1]).lower()
         elif opts[i][0][1:] == "size": size = str(opts[i][1]).lower()
         elif opts[i][0][1:] == "alg": alg = str(opts[i][1]).lower()
         elif opts[i][0][1:] == "subtour": subtour = str(opts[i][1]).lower()
@@ -103,7 +103,7 @@ def set_parameters(argv):
     if (    size     not in ["tsplib","small","medium","large"] 
         or  paralelo not in ["parallel","secuential"] 
         or  alg      not in ["mga","gurobi"] 
-        or (alg == "gurobi" and (subtour not in ("wc","gg","mtz","dl")))):
+        or (alg == "gurobi" and (subtour not in ("wc","gg","mtz","dl","dl_real")))):
         raise ValueError(f"Error, parametro desconocido ({size}/{paralelo}/{alg}/{subtour}))")
 
     parameters_value = {"P_OX": P_OX, "P_PMX": P_PMX, "P_UPMX": P_UPMX,  #Cruzamiento
@@ -127,12 +127,13 @@ instance_dict = {"tsplib":tsplib,
 argv = ["-p"              , "secuential",
         "-size"           , "tsplib",
         "-alg"            , "gurobi",
-        "-subtour"        , "gg",
-        "-initialsol"     , "True",
+        "-subtour"        , "wc",
+        "-initialsol"     , "False",
         "-callback"       , "none",
-        "-bounds"         , "True",
+        "-bounds"         , "False",
         "-newformulation" , "True"]
 
+#argv = sys.argv[1:]
 set_parameters(argv)
 
 if __name__ == "__main__":

@@ -11,14 +11,14 @@ from Source.MathematicalModel import MathematicalModel as MILP
 argv = sys.argv[1:]
 opts = [(argv[2*i],argv[2*i+1]) for i in range(int(len(argv)/2))]
 
-size = "tsplib"
-instance = "gr17"
+size = "medium"
+instance = "1"
+output = True
+subtour = "dl"
+initial_sol = True
 callback = "subtourelim1"
 bounds = True
-subtour = "wc"
-output = True
-initial_sol = True
-new_formulation = False
+new_formulation = True
 time_limit = 1800
 
 for i in range(len(opts)):
