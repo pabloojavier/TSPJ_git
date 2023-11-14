@@ -11,3 +11,8 @@ Codigos/Source/__py_cache__
 Codigos/Source/__pycache__
 ~$*Resultados.xlsx
 *.zip
+*.lp
+*.mps
+*.xlsm
+Resultados_con_bls.xlsx
+papers/brekout_ls.pdf
