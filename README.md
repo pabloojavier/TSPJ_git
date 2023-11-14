@@ -14,7 +14,9 @@ This paper addresses the traveling salesman problem with job-times (TSPJ). TSPJ 
 ### Args to run
 To run 'multi.py' you have to specify the following args:
 
-```python3.9 multi.py -p <parallel/secuential> -size <tsplib/Small/Medium/Large>```
+```
+python3.9 multi.py -p <parallel/secuential> -size <tsplib/Small/Medium/Large>
+```
 
 Where 'p' is the type of execution (parallel or secuential) and 'size' is the size of the instances to run.
 
